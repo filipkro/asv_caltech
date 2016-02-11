@@ -12,7 +12,7 @@ gps_message = GPS_data()
 pub_gps = rospy.Publisher('/GPS_coord', GPS_data, queue_size=10)
 x_prev = 0.0
 y_prev = 0.0
-t_prev = 0.0
+t_prev = rospy.Time()
 angC_prev = 0.0
 
 '''Reads the position in latitude and longitude. Converts it to x,y.
@@ -20,7 +20,7 @@ angC_prev = 0.0
 def GPS_posCallb(msg):
     global origLat, origLon, gps_message, pub_gps, x_vel, y_vel, ang_vel
 
-    EARTH_RADIUS = 6371000;
+    EARTH_RADIUS = 6371000
 
     origLat = float(rospy.get_param('/originLat', 0.0))
     origLon = float(rospy.get_param('/originLon', 0.0))
@@ -65,10 +65,11 @@ def angleDiff(angle):
 
 def getVel(x,y,t):
     global x_prev, y_prev, t_prev, angC_prev
-    x_vel = (x - x_prev)/(t - t_prev)
-    y_vel = (y - y_prev)/(t - t_prev)
+    timeDiff = (t-t_prev).to_sec()
+    x_vel = (x - x_prev)/timeDiff
+    y_vel = (y - y_prev)/timeDiff
     ang_course = angleDiff(math.atan2(y_vel, x_vel))
-    ang_vel = (ang_course - angC_prev)/(t - t_prev)
+    ang_vel = (ang_course - angC_prev)/timeDiff
     x_prev = x
     y_prev = y
     t_prev = t
