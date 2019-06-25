@@ -12,13 +12,33 @@ x = 0.0
 y = 0.0
 lin_vel = 0.0
 ang_vel = 0.0
+pose
+gps_message
+pub_poseStamped
+pub_gps
 
 def GPS_posCallb(msg):
     EARTH_RADIUS = 6371000;
     lat = msg.latitude
     lon = msg.longitude
+    if origLat == 0.0 & origLon == 0.0:
+        origLat = lat
+        origLon = lon
     x = (lon - origLon) * np.pi/180 * np.cos((lat + origLat)/2 * np.pi/180) * EARTH_RADIUS
     y = (lat - origLat) * np.pi/180 * EARTH_RADIUS
+
+    pose.header.frame_id = "map"
+    pose.pose.position.x = x
+    pose.pose.position.y = y
+    pub_poseStamped.publish(pose)
+
+    gps_message.x = x
+    gps_message.y = y
+    gps_message.latitude = lat
+    gps_message.longitude = lon
+    gps_message.lin_vel = lin_vel
+    gps_message.ang_vel = ang_vel
+    pub_gps.publish(gps_message)
 
 def GPS_velCallb(msg):
     #is this the right data?
@@ -35,26 +55,10 @@ def main():
     rospy.Subscriber("/fix", NavSatFix, GPS_posCallb)
     rospy.Subscriber("/vel", Twist, GPS_velCallb)
     rate = rospy.Rate(10)
-    rate.sleep()
-    origLat = lat
-    origLon = lon
     pose = PoseStamped()
     gps_message = GPS_data()
 
-    while not rospy.is_shutdown():
-        pose.header.frame_id = "map"
-        pose.pose.position.x = x
-        pose.pose.position.y = y
-
-        gps_message.x = x
-        gps_message.y = y
-        gps_message.latitude = lat
-        gps_message.longitude = lon
-        gps_message.lin_vel = lin_vel
-        gps_message.ang_vel = ang_vel
-
-        pub_poseStamped.publish(pose)
-        pub_gps.publish(gps_message)
+    rospy.spin()
 
 if __name__ == '__main__':
     main()
