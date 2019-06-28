@@ -1,0 +1,24 @@
+<launch> 
+	
+	<!-- Motor -->
+    <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
+        <param name="sim" value="True"/>
+    </node>
+
+    <!-- ADCP -->
+    <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen" />
+
+    <!--  GPS -->
+    <node pkg="gps_reader" name="gps_reader" type="GPS_node.py" output="screen" />
+    <node pkg="nmea_navsat_driver" name="navsat_driver" type="nmea_serial_driver" output="screen">
+        <param name="port" value="/dev/ttyUSB0"/>
+    </node>
+	
+    <!-- <node 
+		pkg="rosbag"
+		name="record_odometry"
+		type="record"
+		args="-o /tmp/bobcat_bags/kalman_odom decawave/odom decawave/front/kf_tag_pos decawave/rear/kf_tag_pos"
+	/> -->
+
+</launch>

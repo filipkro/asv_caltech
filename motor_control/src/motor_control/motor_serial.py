@@ -40,17 +40,17 @@ def update_cmd(port, starboard, servo):
     global port_ser, strboard_ser
 
     # For simulation, publish to gazebo stuff (not done yet)
-    if rospy.get_param('/sim'):
+    if rospy.get_param('/motor_control/sim'):
         print('Port, Starboard, Servo', port, starboard, servo)
     else:
         port_command = '!G 1 %d' % port
         starboard_command = '!G 1 %d' % starboard
         port_ser.write(port_command.encode() + b'\r\n')
         strboard_ser.write(starboard_command + b'\r\n')
-        servo_pub.publish(turn)
+        servo_pub.publish(servo)
 
 def main():
-    sim = rospy.get_param('/sim')
+    sim = rospy.get_param('/motor_control/sim')
 
     if sim == True:
         rospy.loginfo('YEET')
