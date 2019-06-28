@@ -10,8 +10,14 @@ from roboteq_msgs.msg import Command
 
 strboard_ser = None
 port_ser = None
+
+port_command = Command()
+star_command = Command()
+servo_command = 1550
+
 servo_pub = rospy.Publisher('servo_cmd', UInt32, queue_size=10) 
-motor_pub = rospy.Publisher('roboteq_driver/cmd', Command, queue_size=10)
+port_pub = rospy.Publisher('roboteq_driver/port/cmd', Command, queue_size=10)
+star_pub = rospy.Publisher('roboteq_driver/star/cmd', Command, queue_size=10)
 
 # note that the servo is on the arduino, connected via rosserial 
 # therefore we need to publish to this topic for servo control.
@@ -41,14 +47,23 @@ def teleop_callback(data):
     update_cmd(forward, forward, turn)
 
 def update_cmd(port, starboard, servo):
-    '''send command to motor'''
-    # global port_ser, strboard_ser
+    '''update the command to be sent to the motors'''
+    global port_command, star_command
 
     # For simulation, publish to gazebo stuff (not done yet)
     if rospy.get_param('/motor_control/sim'):
         print('Port, Starboard, Servo', port, starboard, servo)
     else:
-        servo_pub.publish(servo)
+        servo_command = servo
+    
+        port_command.mode = 0
+        port_command.setpoint = port
+        port_pub.publish(port_command)
+
+        star_command.mode = 0
+        star_command.setupoint = staboard
+
+
         # port_command = '!G 1 %d' % port
         # starboard_command = '!G 1 %d' % starboard
         # port_ser.write(port_command.encode() + b'\r\n')
@@ -65,4 +80,16 @@ def main():
     rospy.init_node('motor_controller')
     rospy.Subscriber('motor_controller\motor_cmd_reciever', MotorCommand, send_cmd_callback)
     rospy.Subscriber('cmd_vel', Twist, teleop_callback)
-    rospy.spin()
+    
+    rate = rospy.Rate(50) # 50hz
+    while not rospy.is_shutdown():
+        # publish servo
+        servo_pub.publish(servo_command)
+
+        # publish motor
+        port_pub.publish(port_command)
+        star_command.publish(star_command)
+
+        rate.sleep()
+
+

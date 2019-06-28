@@ -1,8 +1,43 @@
 <launch> 
 	
-	<!-- Motor -->
+	<!-- Motor command distributor -->
     <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
         <param name="sim" value="True"/>
+    </node>
+
+    <!-- Arduino + Servo + IMU -->
+    <node pkg="rosserial_arduino" name="ros arduino" type="serial_node.py">
+        <param name="port" value="/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_FFFFFFFFFFFF515B2503-if00"/>
+    </node>
+
+    <!-- Motors -->
+    <arg name="port_port" default="/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VWDWP-if00-port0" />
+    <node pkg="roboteq_driver" type="driver_node" name="port_driver" output="screen">
+        <param name="port" value="$(arg port_port)" />
+        <param name="baud" value="115200" />
+        <remap
+            from="roboteq_driver/cmd"
+            to="roboteq_driver/port/cmd"
+        />
+        <remap
+            from="roboteq_driver/feedback"
+            to="roboteq_driver/port/feedback"
+        />
+    </node>
+    
+    <!-- Motors -->
+    <arg name="star_port" default="/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VW9AR-if00-port0" />
+    <node pkg="roboteq_driver" type="driver_node" name="starboard_driver" output="screen">
+        <param name="port" value="$(arg star_port)" />
+        <param name="baud" value="115200" />
+        <remap
+            from="roboteq_driver/cmd"
+            to="roboteq_driver/star/cmd"
+        />
+        <remap
+            from="roboteq_driver/feedback"
+            to="roboteq_driver/star/feedback"
+        />
     </node>
 
     <!-- ADCP -->
