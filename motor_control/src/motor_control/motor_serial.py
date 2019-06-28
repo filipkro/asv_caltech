@@ -5,19 +5,24 @@ import rospy
 from motor_control.msg import MotorCommand
 from geometry_msgs.msg import Twist
 from std_msgs.msg import UInt32
+from roboteq_msgs.msg import Command
 
 
 strboard_ser = None
 port_ser = None
 servo_pub = rospy.Publisher('servo_cmd', UInt32, queue_size=10) 
+motor_pub = rospy.Publisher('roboteq_driver/cmd', Command, queue_size=10)
+
 # note that the servo is on the arduino, connected via rosserial 
 # therefore we need to publish to this topic for servo control.
 
 def setup_serial():
     '''setup serial port for the motor '''
     global port_ser, strboard_ser
-    port_ser = serial.Serial('/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VWDWP-if00-port0', 115200)
-    strboard_ser = serial.Serial('/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VW9AR-if00-port0', 115200)
+    # port_ser = serial.Serial('/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VWDWP-if00-port0', 115200)
+    # strboard_ser = serial.Serial('/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VW9AR-if00-port0', 115200)
+    # we're using the roboteq controller, therefore no longer need to call our own
+    pass 
 
 def send_cmd_callback(data):
     '''send command to motor everytime we recieved a callback'''
@@ -37,17 +42,17 @@ def teleop_callback(data):
 
 def update_cmd(port, starboard, servo):
     '''send command to motor'''
-    global port_ser, strboard_ser
+    # global port_ser, strboard_ser
 
     # For simulation, publish to gazebo stuff (not done yet)
     if rospy.get_param('/motor_control/sim'):
         print('Port, Starboard, Servo', port, starboard, servo)
     else:
-        port_command = '!G 1 %d' % port
-        starboard_command = '!G 1 %d' % starboard
-        port_ser.write(port_command.encode() + b'\r\n')
-        strboard_ser.write(starboard_command + b'\r\n')
         servo_pub.publish(servo)
+        # port_command = '!G 1 %d' % port
+        # starboard_command = '!G 1 %d' % starboard
+        # port_ser.write(port_command.encode() + b'\r\n')
+        # strboard_ser.write(starboard_command + b'\r\n')
 
 def main():
     sim = rospy.get_param('/motor_control/sim')
@@ -58,6 +63,6 @@ def main():
         setup_serial()
 
     rospy.init_node('motor_controller')
-    rospy.Subscriber('motor_cmd_reciever', MotorCommand, send_cmd_callback)
+    rospy.Subscriber('motor_controller\motor_cmd_reciever', MotorCommand, send_cmd_callback)
     rospy.Subscriber('cmd_vel', Twist, teleop_callback)
     rospy.spin()
