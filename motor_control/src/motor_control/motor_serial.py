@@ -56,12 +56,14 @@ def update_cmd(port, starboard, servo):
     else:
         servo_command = servo
     
+        # convert from rpm to rad/s
+        port = port*60 / 2* math.pi
         port_command.mode = 0
         port_command.setpoint = port
-        port_pub.publish(port_command)
 
+        starboard = port*60 / 2* math.pi
         star_command.mode = 0
-        star_command.setupoint = staboard
+        star_command.setupoint = starboard
 
 
         # port_command = '!G 1 %d' % port
