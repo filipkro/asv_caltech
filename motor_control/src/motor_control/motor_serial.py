@@ -80,7 +80,7 @@ def main():
         setup_serial()
 
     rospy.init_node('motor_controller')
-    rospy.Subscriber('motor_controller\motor_cmd_reciever', MotorCommand, send_cmd_callback)
+    rospy.Subscriber('motor_controller/motor_cmd_reciever', MotorCommand, send_cmd_callback)
     rospy.Subscriber('cmd_vel', Twist, teleop_callback)
     
     rate = rospy.Rate(50) # 50hz

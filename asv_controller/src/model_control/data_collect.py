@@ -13,9 +13,9 @@ def circ_test():
     ANGLE = [1550, 1600, 1650, 1700, 1750, 1800]
     SPEED = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
     samp_rate = 10
-    test_time = 20
+    test_time = 5
     ###################################
-    control_pub = rospy.Publisher('motor_controller\motor_cmd_reciever', MotorCommand, queue_size=1)
+    control_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
     msg = MotorCommand()
     rate = rospy.Rate(samp_rate)
     sim_time = len(ANGLE) * len(SPEED)
@@ -48,11 +48,11 @@ def lin_test():
     '''what is reasonable? Maybe 0-2000'''
     SPEED = [100, 200, 300, 400, 500, 600, 700, 800, 900, 1000]
     samp_rate = 10
-    test_time = 20
+    test_time = 5
     RUDDER_ANG = 1500
     '''or whatever is straight'''
     ###################################
-    control_pub = rospy.Publisher('motor_controller\motor_cmd_reciever', MotorCommand, queue_size=1)
+    control_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
     msg = MotorCommand()
     rate = rospy.Rate(samp_rate)
     sim_time = len(SPEED)
