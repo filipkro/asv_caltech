@@ -21,18 +21,21 @@ def circ_test():
     sim_time = len(ANGLE) * len(SPEED)
     prog = 0
     for i in range(len(ANGLE)):
-        print(floor(100*prog/sim_time), '%')
-        prog += 1
+        if rospy.is_shutdown():
+            break;
         for j in range(len(SPEED)):
-            print(floor(100*prog/sim_time), '%')
+            print(str(floor(100*prog/sim_time)) + "%")
             prog += 1
+            if rospy.is_shutdown():
+                break;
             for k in range(test_time*samp_rate):
-                '''how should rpms be translated to motorCommand?'''
                 msg.strboard = SPEED[j]
                 msg.port = SPEED[j]
                 msg.servo = ANGLE[i]
                 control_pub.publish(msg)
                 rate.sleep()
+                if rospy.is_shutdown():
+                    break;
 
     msg.strboard = 0.0
     msg.port = 0.0
@@ -55,7 +58,9 @@ def lin_test():
     sim_time = len(SPEED)
     prog = 0
     for i in range(len(SPEED)):
-        print(floor(100*prog/sim_time), '%')
+        if rospy.is_shutdown():
+            break;
+        print(str(floor(100*prog/sim_time)) + "%")
         prog += 1
         for k in range(test_time*samp_rate):
                 '''how should rpms be translated to motorCommand?'''
@@ -63,7 +68,10 @@ def lin_test():
                 msg.port = SPEED[i]
                 msg.servo = RUDDER_ANG
                 control_pub.publish(msg)
+
                 rate.sleep()
+                if rospy.is_shutdown():
+                    break;
 
     msg.strboard = 0.0
     msg.port = 0.0
@@ -74,8 +82,8 @@ def main():
     rospy.init_node('data_collect')
 
 #########  Which data to collect?  #########
-    lin_test()
-    #circ_test()
+    #lin_test()
+    circ_test()
 
 
 if __name__ == '__main__':
