@@ -57,6 +57,3 @@ def main():
     rospy.Subscriber("/fix", NavSatFix, GPS_posCallb)
     rospy.Subscriber("/vel", TwistStamped, GPS_velCallb)
     rospy.spin()
-
-if __name__ == '__main__':
-    main()
