@@ -8,18 +8,16 @@ from geometry_msgs.msg import PointStamped
 import math
 import numpy as np
 
-# TODO: Fix reference vector/subscriber (!!!)
-#       Fix controller when reference completed
-#       Tune params
-#       Add D-part?
+
+# Very similar to PI_controller.py, but angle error generated based on
+# direction of boat instead of direction of travel
 
 #Which global needed?
 x = 0.0
 y = 0.0
-ang = 0.0
+theta = 0.0
 x_vel = 0.0
 y_vel = 0.0
-ang_course = 0.0
 ang_vel = 0.0
 dest_points = []
 x_ref = 0.0
@@ -38,8 +36,8 @@ def GPS_callb(msg):
     ang_vel = msg.ang_vel
 
 def IMU_callb(msg):
-    global ang
-    ang = msg.data[8]
+    global theta
+    theta = msg.data[8]
 
 def point_callb(msg):
     global dest_points
@@ -105,7 +103,7 @@ def thrust_control(v_ref):
 
 
 def rudder_control(x_ref, y_ref):
-    global x, y, ang_course, I_rudder, h
+    global x, y, theta, I_rudder, h
     ##########################
     ### Control parameters ###
     MAX_RUDDER = 1834
@@ -120,7 +118,7 @@ def rudder_control(x_ref, y_ref):
     ''' angle error based on angle course or heading angle?
         With ang_course might be possible with one controller?
         But might be very sensitive, I'll try it! '''
-    e_ang = angleDiff(des_angle - ang_course)
+    e_ang = angleDiff(des_angle - theta)
     # alt: e_ang = angleDiff(des_angle - ang)
     '''Forward difference discretized PI'''
     u = K*e_ang + I_rudder + 1600

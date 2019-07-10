@@ -67,12 +67,12 @@ catkin_python_setup()
 # )
 
 ## Generate added messages and services with any dependencies listed here
- generate_messages(
-   DEPENDENCIES
-   std_msgs  # Or other packages containing msgs
+ #generate_messages(
+  # DEPENDENCIES
+   #std_msgs  # Or other packages containing msgs
   # gps_reader
   # motor_control #How should this be done??
-)
+#)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
