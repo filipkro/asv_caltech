@@ -20,8 +20,11 @@ servo_command = 1550
 servo_pub = rospy.Publisher('servo_cmd', UInt32, queue_size=10) 
 port_pub = rospy.Publisher('starboard_driver/cmd', Command, queue_size=10)
 star_pub = rospy.Publisher('port_driver/cmd', Command, queue_size=10)
+#servo_pub = rospy.Publisher('servo_cmd', UInt32, queue_size=10)
+#port_pub = rospy.Publisher('roboteq_driver/port/cmd', Command, queue_size=10)
+#star_pub = rospy.Publisher('roboteq_driver/star/cmd', Command, queue_size=10)
 
-# note that the servo is on the arduino, connected via rosserial 
+# note that the servo is on the arduino, connected via rosserial
 # therefore we need to publish to this topic for servo control.
 
 def setup_serial():
@@ -30,7 +33,7 @@ def setup_serial():
     # port_ser = serial.Serial('/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VWDWP-if00-port0', 115200)
     # strboard_ser = serial.Serial('/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VW9AR-if00-port0', 115200)
     # we're using the roboteq controller, therefore no longer need to call our own
-    pass 
+    pass
 
 def send_cmd_callback(data):
     '''send command to motor everytime we recieved a callback'''
@@ -58,7 +61,11 @@ def update_cmd(port, starboard, servo):
         print('Port, Starboard, Servo', port, starboard, servo)
     else:
         servo_command = servo
+<<<<<<< HEAD
 	print(port, starboard, servo)    
+=======
+
+>>>>>>> a6cd08c47a03961b3003718028725402e405fd4f
         # convert from rpm to rad/s
         port = -port/ 60 * 2* math.pi
         port_command.mode = 2
@@ -88,7 +95,11 @@ def main():
     rospy.init_node('motor_controller')
     rospy.Subscriber('motor_controller/motor_cmd_reciever', MotorCommand, send_cmd_callback)
     rospy.Subscriber('cmd_vel', Twist, teleop_callback)
+<<<<<<< HEAD
     rospy.Subscriber('imu', Float32MultiArray, imu_callback)
+=======
+
+>>>>>>> a6cd08c47a03961b3003718028725402e405fd4f
     rate = rospy.Rate(50) # 50hz
     while not rospy.is_shutdown():
         # publish servo
@@ -99,5 +110,3 @@ def main():
         star_pub.publish(star_command)
 
         rate.sleep()
-
-
