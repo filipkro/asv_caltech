@@ -1,3 +1,5 @@
+float64 origin_lat
+float64 origin_lon
 float64 x
 float64 y
 float64 latitude
