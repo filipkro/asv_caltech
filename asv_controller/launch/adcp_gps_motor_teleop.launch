@@ -11,6 +11,11 @@
         <param name="port" value="/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_FFFFFFFFFFFF515B2503-if00"/>
     </node> 
 
+    <remap from="imu" to="sensors/imu"/>	
+    <remap from="fix" to="GPS/fix"/>
+    <remap from="vel" to="GPS/vel"/>
+    <remap from="GPS_coord" to="GPS/xy_coord"/>
+
     <!-- Motors -->
     <arg name="port_port" default="/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VWDWP-if00-port0" />
     <node pkg="roboteq_driver" type="driver_node" name="port_driver" output="screen">
