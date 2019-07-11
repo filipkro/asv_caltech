@@ -2,13 +2,14 @@
 	
 	<!-- Motor command distributor -->
     <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
-        <param name="sim" value="True"/>
+        <param name="sim" value="False"/>
     </node>
 
     <!-- Arduino + Servo + IMU -->
-    <node pkg="rosserial_arduino" name="ros arduino" type="serial_node.py">
+    
+    <node pkg="rosserial_python" name="ros_arduino" type="serial_node.py">
         <param name="port" value="/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_FFFFFFFFFFFF515B2503-if00"/>
-    </node>
+    </node> 
 
     <!-- Motors -->
     <arg name="port_port" default="/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VWDWP-if00-port0" />
@@ -44,16 +45,18 @@
     <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen" />
 
     <!--  GPS -->
+    	
     <node pkg="gps_reader" name="gps_reader" type="GPS_node.py" output="screen" />
     <node pkg="nmea_navsat_driver" name="navsat_driver" type="nmea_serial_driver" output="screen">
-        <param name="port" value="/dev/ttyUSB0"/>
-    </node>
+        <param name="port" value="/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller-if00-port0"/>
+	<param name="baud" value="19200"/>	
+    </node> 
 	
     <!-- <node 
-		pkg="rosbag"
-		name="record_odometry"
-		type="record"
-		args="-o /tmp/bobcat_bags/kalman_odom decawave/odom decawave/front/kf_tag_pos decawave/rear/kf_tag_pos"
+	pkg="rosbag"
+	name="record_odometry"
+	type="record"
+	args="-a ~/asv_log/data"
 	/> -->
 
 </launch>

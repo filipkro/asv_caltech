@@ -135,7 +135,7 @@ def extract_data(all_data):
         offset_int = int(''.join(reversed(offset)).encode('hex'),16)
         offsets.append(offset_int)
     # print('Offsets: ', offsets)
-    print('Data IDs: ', [all_data[x:x+2] for x in offsets])
+    # print('Data IDs: ', [all_data[x:x+2] for x in offsets])
 
     # python3 way of extracting hex value int.from_bytes(data, byteorder='little')
     # python2 way of extracting int(''.join(reversed(data)).encode('hex'), 16)
