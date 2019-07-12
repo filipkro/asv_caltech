@@ -8,7 +8,7 @@ from geometry_msgs.msg import Twist
 from std_msgs.msg import UInt32
 from std_msgs.msg import Float32MultiArray
 from roboteq_msgs.msg import Command
-
+from gps_reader.msg import GPS_WayPoints
 
 strboard_ser = None
 port_ser = None
@@ -61,11 +61,9 @@ def update_cmd(port, starboard, servo):
         print('Port, Starboard, Servo', port, starboard, servo)
     else:
         servo_command = servo
-<<<<<<< HEAD
-	print(port, starboard, servo)    
-=======
 
->>>>>>> a6cd08c47a03961b3003718028725402e405fd4f
+	print(port, starboard, servo)    
+
         # convert from rpm to rad/s
         port = -port/ 60 * 2* math.pi
         port_command.mode = 2
@@ -84,6 +82,9 @@ def imu_callback(msg):
     #print('Compass ' + str(msg.data[8]/math.pi*180))
     pass
 
+def test_callback(msg):
+    print("I GOT THE MESSAGE")
+
 def main():
     sim = rospy.get_param('/motor_control/sim')
 
@@ -95,11 +96,9 @@ def main():
     rospy.init_node('motor_controller')
     rospy.Subscriber('motor_controller/motor_cmd_reciever', MotorCommand, send_cmd_callback)
     rospy.Subscriber('cmd_vel', Twist, teleop_callback)
-<<<<<<< HEAD
     rospy.Subscriber('imu', Float32MultiArray, imu_callback)
-=======
+    rospy.Subscriber('ControlCenter/gps_wp', GPS_WayPoints, test_callback)
 
->>>>>>> a6cd08c47a03961b3003718028725402e405fd4f
     rate = rospy.Rate(50) # 50hz
     while not rospy.is_shutdown():
         # publish servo
