@@ -8,19 +8,17 @@ from geometry_msgs.msg import PointStamped
 import math
 import numpy as np
 
-# TODO: Fix reference vector/subscriber (!!!)
-#       Fix controller when reference completed
+# TODO: Fix controller when reference completed
 #       Tune params
 #       Add D-part?
 
 #Which global needed?
 x = 0.0
 y = 0.0
-ang = 0.0
+theta = 0.0
 x_vel = 0.0
 y_vel = 0.0
 ang_course = 0.0
-ang_vel = 0.0
 wayPoints = []
 x_ref = 5.0
 y_ref = 4.0
@@ -29,17 +27,16 @@ I_rudder = 0.0
 h = 0.2
 
 def GPS_callb(msg):
-    global x, y, x_vel, y_vel, ang_course, ang_vel
+    global x, y, x_vel, y_vel, ang_course
     x = msg.x
     y = msg.y
     x_vel = msg.x_vel
     y_vel = msg.y_vel
     ang_course = msg.ang_course
-    ang_vel = msg.ang_vel
 
 def IMU_callb(msg):
     global ang
-    ang = msg.data[8]
+    theta = msg.data[8]
 
 def WP_callb(msg):
     global wayPoints
@@ -56,7 +53,7 @@ def angleDiff(angle):
 
 
 def calc_control():
-    global x_ref, y_ref, wayPoints
+    global x_ref, y_ref, wayPoints, x_vel, y_vel
     DIST_THRESHOLD = 0.5
     '''Fix distance threshold and reference points'''
     dist = math.sqrt((x_ref - x)**2 + (y_ref - y)**2)
@@ -74,13 +71,14 @@ def calc_control():
              x_ref = point.x
              y_ref = point.y
 
-    u_thrust = thrust_control()
-    u_rudder = rudder_control(x_ref, y_ref)
+    v = math.sqrt(x_vel**2 + y_vel**2)
+    u_thrust = thrust_control(v)
+    u_rudder = rudder_control(x_ref, y_ref, v)
 
     return u_thrust, u_rudder
 
 
-def thrust_control():
+def thrust_control(v):
     global x_vel, y_vel, I_thrust, h
     ''' PI controller. Controls thrust to keep contant velocity.
     Should work in different currents? '''
@@ -100,7 +98,7 @@ def thrust_control():
 
     v_ref = rospy.get_param('v_ref', 0.0)
 
-    v = math.sqrt(x_vel**2 + y_vel**2)
+
     e_v = v_ref - v
     '''Forward difference discretized PI'''
     u = K*e_v + I_thrust
@@ -113,12 +111,13 @@ def thrust_control():
     return u_thrust
 
 
-def rudder_control(x_ref, y_ref):
-    global x, y, ang_course, I_rudder, h
+def rudder_control(x_ref, y_ref, v):
+    global x, y, ang_course, theta, I_rudder, h
     ##########################
     ### Control parameters ###
     MAX_RUDDER = 1834
     MIN_RUDDER = 1195
+    VEL_THRESHOLD = rospy.get_param('/vel_threshold', 0.1)
     '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
     K = rospy.get_param('rudder/K', 1.0)
     Ti = rospy.get_param('rudder/Ti', 1.0)
@@ -132,8 +131,12 @@ def rudder_control(x_ref, y_ref):
     ''' angle error based on angle course or heading angle?
         With ang_course might be possible with one controller?
         But might be very sensitive, I'll try it! '''
-    e_ang = angleDiff(des_angle - ang_course)
-    # alt: e_ang = angleDiff(des_angle - ang)
+    if v < VEL_THRESHOLD:
+        e_ang = angleDiff(des_angle - theta)
+        print("hej")
+    else:
+        e_ang = angleDiff(des_angle - ang_course)
+
     '''Forward difference discretized PI'''
     u = K*e_ang + I_rudder + 1600
     '''saturation'''
