@@ -44,6 +44,7 @@ def IMU_callb(msg):
 def WP_callb(msg):
     global wayPoints
     wayPoints = msg
+    rospy.loginfo(wayPoints)
 
 def angleDiff(angle):
     while angle > math.pi:

@@ -97,7 +97,6 @@ def main():
     rospy.Subscriber('motor_controller/motor_cmd_reciever', MotorCommand, send_cmd_callback)
     rospy.Subscriber('cmd_vel', Twist, teleop_callback)
     rospy.Subscriber('imu', Float32MultiArray, imu_callback)
-    rospy.Subscriber('ControlCenter/gps_wp', GPS_WayPoints, test_callback)
 
     rate = rospy.Rate(50) # 50hz
     while not rospy.is_shutdown():

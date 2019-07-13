@@ -50,8 +50,13 @@
     <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen" />
 
     <!--  GPS -->
-    	<!-- Should origin be sent as a param?? -->
-    <node pkg="gps_reader" name="gps_reader" type="GPS_node.py" output="screen" />
+    <!-- Should origin be sent as a param?? -->
+    <node pkg="gps_reader" name="gps_reader" type="GPS_node.py" output="screen">
+	<rosparam>
+           /originLat: 0.0
+           /originLon: 0.0
+        </rosparam>
+    </node>
 
     <node pkg="nmea_navsat_driver" name="navsat_driver" type="nmea_serial_driver" output="screen">
         <param name="port" value="/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller-if00-port0"/>

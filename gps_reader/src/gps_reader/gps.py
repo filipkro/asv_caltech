@@ -20,8 +20,8 @@ def GPS_posCallb(msg):
     global origLat, origLon, gps_message, pub_gps
     EARTH_RADIUS = 6371000;
 
-    origLat = rospy.get_param('/originLat', 0.0)
-    origLon = rospy.get_param('/originLon', 0.0)
+    origLat = float(rospy.get_param('/originLat', 0.0))
+    origLon = float(rospy.get_param('/originLon', 0.0))
 
     lat = msg.latitude
     lon = msg.longitude
@@ -40,6 +40,7 @@ def GPS_posCallb(msg):
     gps_message.origin_lat = origLat
     gps_message.origin_lon = origLon
     pub_gps.publish(gps_message)
+    print(x,y)
 
 '''Reads the linear and angular velocities'''
 def GPS_velCallb(msg):
