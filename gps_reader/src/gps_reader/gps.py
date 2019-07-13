@@ -35,7 +35,8 @@ def GPS_posCallb(msg):
     gps_message.longitude = lon
     gps_message.x_vel = x_vel
     gps_message.y_vel = y_vel
-    gps_message.ang_course = angleDiff(math.atan2(y_vel, x_vel))
+    gps_message.ang_course = angleDiff((-msg.twist.angular.z + 360 + 90) * math.pi / 180)
+    #gps_message.ang_course = angleDiff(math.atan2(y_vel, x_vel))
     gps_message.ang_vel = ang_vel
     gps_message.origin_lat = origLat
     gps_message.origin_lon = origLon
@@ -46,7 +47,7 @@ def GPS_velCallb(msg):
     global lin_vel, ang_vel
     x_vel = msg.twist.linear.x
     y_vel = msg.twist.linear.y
-    ang_vel = msg.twist.angular.x
+    ang_vel = msg.twist.angular.z
 
 def angleDiff(angle):
     while angle > math.pi:

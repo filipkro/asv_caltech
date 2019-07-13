@@ -66,6 +66,7 @@
         /thrust/Ti: 1.0
         /rudder/K: 5.0
         /rudder/Ti: 1.0
+        /vel_threshold: 0.1
       </rosparam>
     </node>
 
