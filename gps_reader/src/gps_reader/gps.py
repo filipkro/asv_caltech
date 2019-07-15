@@ -37,16 +37,12 @@ def GPS_posCallb(msg):
     gps_message.y = y
     gps_message.latitude = lat
     gps_message.longitude = lon
-    gps_message.x_vel = x_vel
-    gps_message.y_vel = y_vel
-    #gps_message.ang_course = angleDiff((-msg.twist.angular.z + 360 + 90) * math.pi / 180)
-    gps_message.ang_course = angleDiff(math.atan2(y_vel, x_vel))
-    gps_message.ang_vel = ang_vel
     gps_message.origin_lat = origLat
     gps_message.origin_lon = origLon
+    gps_message.x_vel = x_vel
+    gps_message.y_vel = y_vel
+    gps_message.ang_course = ang_course
     gps_message.ang_vel = ang_vel
-    #gps_message.ang_course = angleDiff((-msg.twist.angular.z + 360 + 90) * math.pi / 180)
-    #gps_message.ang_course = angleDiff(math.atan2(y_vel, x_vel))
 
 
     pub_gps.publish(gps_message)
@@ -76,9 +72,8 @@ def getVel(x,y,t):
     x_prev = x
     y_prev = y
     t_prev = t
-    angC_prev = ang_course
 
-    return x_vel, y_vel, ang_course, ang_vel
+    return x_vel, y_vel, ang_course, angC_prev
 
 def main():
     rospy.init_node('GPS_reader', anonymous=True)
