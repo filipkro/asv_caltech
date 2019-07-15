@@ -1,17 +1,17 @@
-<launch> 
-	
+<launch>
+
 	<!-- Motor command distributor -->
     <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
         <param name="sim" value="False"/>
     </node>
 
     <!-- Arduino + Servo + IMU -->
-    
+
     <node pkg="rosserial_python" name="ros_arduino" type="serial_node.py">
         <param name="port" value="/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_FFFFFFFFFFFF515B2503-if00"/>
-    </node> 
+    </node>
 
-    <remap from="imu" to="sensors/imu"/>	
+    <remap from="imu" to="sensors/imu"/>
     <remap from="fix" to="GPS/fix"/>
     <remap from="vel" to="GPS/vel"/>
     <remap from="GPS_coord" to="GPS/xy_coord"/>
@@ -30,7 +30,7 @@
             to="roboteq_driver/port/feedback"
         />
     </node>
-    
+
     <!-- Motors -->
     <arg name="star_port" default="/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VW9AR-if00-port0" />
     <node pkg="roboteq_driver" type="driver_node" name="starboard_driver" output="screen">
@@ -50,14 +50,32 @@
     <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen" />
 
     <!--  GPS -->
-    	
-    <node pkg="gps_reader" name="gps_reader" type="GPS_node.py" output="screen" />
+    <!-- Should origin be sent as a param?? -->
+    <node pkg="gps_reader" name="gps_reader" type="GPS_node.py" output="screen">
+	<rosparam>
+           /originLat: 0.0
+           /originLon: 0.0
+        </rosparam>
+    </node>
+
     <node pkg="nmea_navsat_driver" name="navsat_driver" type="nmea_serial_driver" output="screen">
         <param name="port" value="/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller-if00-port0"/>
-	<param name="baud" value="19200"/>	
-    </node> 
-	
-    <!-- <node 
+	      <param name="baud" value="19200"/>
+    </node>
+
+    <node pkg="asv_controller" name="PI_controller" type="PI_node.py" output="screen">
+      <rosparam>
+        /run: False
+        /v_ref: 0.5
+        /thrust/K: 5.0
+        /thrust/Ti: 1.0
+        /rudder/K: 5.0
+        /rudder/Ti: 1.0
+        /vel_threshold: 0.1
+      </rosparam>
+    </node>
+
+    <!-- <node
 	pkg="rosbag"
 	name="record_odometry"
 	type="record"
