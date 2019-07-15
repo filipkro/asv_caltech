@@ -8,7 +8,7 @@ from geometry_msgs.msg import PointStamped
 from std_msgs.msg import Float32
 import math
 import numpy as np
-import time 
+import time
 
 # TODO: Fix controller when reference completed
 #       Tune params
@@ -56,9 +56,9 @@ def IMU_callb(msg):
     theta = angleDiff(msg.data - 109.0/180.0 * math.pi)
     #print('IMU CALLBACK')
    # print("degree ", msg.data/math.pi * 180)
-   # print("radian ", msg.data) 
-    #print('theta ', theta) 
- 
+   # print("radian ", msg.data)
+    #print('theta ', theta)
+
 def WP_callb(msg):
     global wayPoints, x_ref, y_ref
     wayPoints = msg
@@ -264,7 +264,7 @@ def rudder_control(x_ref, y_ref, v):
     '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
     K = rospy.get_param('rudder/K', 1.0)
     Ti = rospy.get_param('rudder/Ti', 1.0)
-    Tr = Ti/2
+    Tr = 1
     ##########################
     print("RUDDER:")
     print("K: ", K)
@@ -279,12 +279,12 @@ def rudder_control(x_ref, y_ref, v):
         print("hej")
     else:
         e_ang = angleDiff(des_angle - ang_course)
-    
+
     print("des ang", des_angle)
     print('ang_course', ang_course)
     print("theta", theta)
     print("e ang", e_ang)
-	  
+
 
     '''Forward difference discretized PI'''
     u = -(K*e_ang + K/Ti * I_rudder) + 1600
@@ -292,10 +292,11 @@ def rudder_control(x_ref, y_ref, v):
     u_rudder = np.clip(u, MIN_RUDDER, MAX_RUDDER)
     '''tracking, works as anti-windup. See http://www.control.lth.se/fileadmin/control/Education/EngineeringProgram/FRTN01/2019_lectures/L08_slides6.pdf
     pg. 40-47 for details'''
-   # I_rudder = I_rudder + e_ang * h + h/Tr*(u_rudder - u)
+    I_rudder = I_rudder +  e_ang * h + h/Tr*(u_rudder - u)
+
     print("I_rudder: ", I_rudder)
     return int(u_rudder)
-
+    '''set Tr to 1 and move K/Ti to calculation of u??'''
 
 def main():
     global samp_time
@@ -322,6 +323,7 @@ def main():
             motor_cmd.strboard = 0.0
             motor_cmd.servo = 1600
 
+        print(motor_cmd)
         ctrl_pub.publish(motor_cmd)
 
         rate.sleep()
