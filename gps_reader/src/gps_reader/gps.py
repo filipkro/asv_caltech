@@ -18,7 +18,7 @@ angC_prev = 0.0
 '''Reads the position in latitude and longitude. Converts it to x,y.
     Publishes custom message with positions: x,y,lon,lat and velocities: lin,ang'''
 def GPS_posCallb(msg):
-    global gps_message, pub_gps
+    global origLat, origLon, gps_message, pub_gps, x_vel, y_vel, ang_vel
 
     EARTH_RADIUS = 6371000;
 
