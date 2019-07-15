@@ -37,6 +37,7 @@ K_latAng = 10
 Kp_Ang = 10
 v_update_count = 0
 ang_update_count = 0
+last_u_nom = 0
 last_v_des = 0
 last_ang_des = 0
 
@@ -78,7 +79,7 @@ def angleDiff(angle):
 
 def transect_control(v_x_des):
     global x_ref, y_ref, wayPoints, x_vel, y_vel, v_update_count, last_v_des, ang_update_count
-    global last_ang_des
+    global last_ang_des, last_u_nom
 
     DIST_THRESHOLD = 1
     dist = math.sqrt((x_ref - x)**2 + (y_ref - y)**2)
@@ -98,10 +99,12 @@ def transect_control(v_x_des):
         if v_update_count >= v_update_rate:
             v_vert, u_nom = vertical_speed_control(des_point)
             last_v_des = v_vert
+            last_u_nom = u_nom
             v_update_count = 0
         else:
             v_update_count += 1
             v_vert = last_v_des
+            u_nom = last_u_nom
 
         if ang_update_count >= ang_update_rate:
             ang_des = calc_lateral_ang(des_point, v_x_des)
@@ -112,7 +115,7 @@ def transect_control(v_x_des):
             ang_des = last_ang_des
 
         u_rudder = heading_control(ang_des)
-        
+
     return u_nom, u_rudder
 
 def vertical_speed_control(des_point):
