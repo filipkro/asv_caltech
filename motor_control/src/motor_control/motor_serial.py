@@ -6,6 +6,7 @@ import math
 from motor_control.msg import MotorCommand
 from geometry_msgs.msg import Twist
 from std_msgs.msg import UInt32
+from std_msgs.msg import Float32
 from std_msgs.msg import Float32MultiArray
 from roboteq_msgs.msg import Command
 from gps_reader.msg import GPS_WayPoints
@@ -20,6 +21,7 @@ servo_command = 1550
 servo_pub = rospy.Publisher('servo_cmd', UInt32, queue_size=10) 
 port_pub = rospy.Publisher('starboard_driver/cmd', Command, queue_size=10)
 star_pub = rospy.Publisher('port_driver/cmd', Command, queue_size=10)
+heading_pub = rospy.Publisher('heading', Float32, queue_size=10)
 #servo_pub = rospy.Publisher('servo_cmd', UInt32, queue_size=10)
 #port_pub = rospy.Publisher('roboteq_driver/port/cmd', Command, queue_size=10)
 #star_pub = rospy.Publisher('roboteq_driver/star/cmd', Command, queue_size=10)
@@ -79,8 +81,7 @@ def update_cmd(port, starboard, servo):
         # port_ser.write(port_command.encode() + b'\r\n')
         # strboard_ser.write(starboard_command + b'\r\n')
 def imu_callback(msg):
-    #print('Compass ' + str(msg.data[8]/math.pi*180))
-    pass
+    heading_pub.publish(msg.data[8])
 
 def test_callback(msg):
     print("I GOT THE MESSAGE")

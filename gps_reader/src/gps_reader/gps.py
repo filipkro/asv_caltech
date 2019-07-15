@@ -17,7 +17,7 @@ pub_gps = rospy.Publisher('/GPS_coord', GPS_data, queue_size=1)
 '''Reads the position in latitude and longitude. Converts it to x,y.
     Publishes custom message with positions: x,y,lon,lat and velocities: lin,ang'''
 def GPS_posCallb(msg):
-    global origLat, origLon, gps_message, pub_gps
+    global origLat, origLon, gps_message, pub_gps, x_vel, y_vel, ang_vel
     EARTH_RADIUS = 6371000;
 
     origLat = float(rospy.get_param('/originLat', 0.0))
@@ -35,17 +35,16 @@ def GPS_posCallb(msg):
     gps_message.longitude = lon
     gps_message.x_vel = x_vel
     gps_message.y_vel = y_vel
-    gps_message.ang_course = angleDiff((-msg.twist.angular.z + 360 + 90) * math.pi / 180)
-    #gps_message.ang_course = angleDiff(math.atan2(y_vel, x_vel))
+    #gps_message.ang_course = angleDiff((-msg.twist.angular.z + 360 + 90) * math.pi / 180)
+    gps_message.ang_course = angleDiff(math.atan2(y_vel, x_vel))
     gps_message.ang_vel = ang_vel
     gps_message.origin_lat = origLat
     gps_message.origin_lon = origLon
     pub_gps.publish(gps_message)
-    print(x,y)
 
 '''Reads the linear and angular velocities'''
 def GPS_velCallb(msg):
-    global lin_vel, ang_vel
+    global x_vel, y_vel, ang_vel
     x_vel = msg.twist.linear.x
     y_vel = msg.twist.linear.y
     ang_vel = msg.twist.angular.z
