@@ -21,7 +21,7 @@ y_vel = 0.0
 ang_course = 0.0
 wayPoints = []
 x_ref = 5.0
-y_ref = 4.0
+y_ref = 7.0
 I_thrust = 0.0
 I_rudder = 0.0
 h = 0.2
@@ -120,7 +120,7 @@ def rudder_control(x_ref, y_ref, v):
     '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
     K = rospy.get_param('rudder/K', 1.0)
     Ti = rospy.get_param('rudder/Ti', 1.0)
-    Tr = Ti/2
+    Tr = 1
     ##########################
     print("RUDDER:")
     print("K: ", K)
@@ -137,15 +137,15 @@ def rudder_control(x_ref, y_ref, v):
         e_ang = angleDiff(des_angle - ang_course)
 
     '''Forward difference discretized PI'''
-    u = K*e_ang + I_rudder + 1600
+    u = K*e_ang + K/Ti * I_rudder + 1600
     '''saturation'''
     u_rudder = np.clip(u, MIN_RUDDER, MAX_RUDDER)
     '''tracking, works as anti-windup. See http://www.control.lth.se/fileadmin/control/Education/EngineeringProgram/FRTN01/2019_lectures/L08_slides6.pdf
     pg. 40-47 for details'''
-    I_rudder = I_rudder + K/Ti * e_ang * h + h/Tr*(u_rudder - u)
+    I_rudder = I_rudder +  e_ang * h + h/Tr*(u_rudder - u)
     print("I_rudder: ", I_rudder)
     return int(u_rudder)
-
+    '''set Tr to 1 and move K/Ti to calculation of u??'''
 
 def main():
     global samp_time
@@ -173,6 +173,7 @@ def main():
             motor_cmd.strboard = 0.0
             motor_cmd.servo = 1600
 
+        print(motor_cmd)
         ctrl_pub.publish(motor_cmd)
 
         rate.sleep()
