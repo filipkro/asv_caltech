@@ -5,16 +5,18 @@ import rospy
 import math
 from std_msgs.msg import Int64MultiArray
 import struct
+import datetime
 
 
 adcp_ser = None
 ANGLE_OFFSET = 45
-
+adcp_f = None
+adcp_filename = ''
 
 def setup_adcp():
     '''Initialize adcp serial port, sending appropriate 
     messages to configure it correctly'''
-    global adcp_ser
+    global adcp_ser, adcp_f, adcp_filename
     adcp_port = '/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller_D-if00-port0'
     adcp_ser = serial.Serial(adcp_port, 115200, stopbits=serial.STOPBITS_ONE)
     adcp_ser.flush()
@@ -33,6 +35,10 @@ def setup_adcp():
     s = read_ADCP_response(verbose=True)
     time.sleep(0.1)
     print("Angle offset message: ", s)
+
+    time_stamp = datetime.datetime.now().replace(microsecond=0).strftime('%y-%m-%d %H.%M.%S')
+    adcp_filename = '/media/ubuntu/9C33-6BBD28/ADCP' + time_stamp + ".bin"
+    adcp_f = open(adcp_filename, 'wb')
 
 def send_ADCP(command):
     '''send a command to adcp and return the response'''
@@ -75,7 +81,7 @@ def start_ping():
 
 def read_ensemble(verbose=False):
     '''Read an ensemble of ADCP data. Then log it in a file'''
-    global adcp_ser
+    global adcp_ser, adcp_f
     header = adcp_ser.read(2)
     if header != b'\x7f\x7f':
         print('ERROR no header: ', header)
@@ -101,7 +107,7 @@ def read_ensemble(verbose=False):
 
     #read data to file
     all_data = b'\x7f\x7f' + num_bytes + data + checksum
-    # self.adcp_f.write(all_data)
+    adcp_f.write(all_data)
 
     # current_state = [self.state_est.x, self.state_est.y, self.state_est.theta, self.state_est.roll, self.state_est.pitch, self.state_est.v_course, self.state_est.ang_course]
     # current_state_str = "$STATE," + ",".join(map(str,current_state)) + "###"

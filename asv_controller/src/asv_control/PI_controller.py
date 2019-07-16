@@ -27,9 +27,22 @@ y_ref = 0.0
 I_thrust = 0.0
 I_rudder = 0.0
 h = 0.2
-
 x_refPrev = 0.0
 y_refPrev = 0.0
+
+
+# transect parameters
+transect_p1 = None
+trnasect_p2 = None
+last_point = None
+K_v = 10 # vertical speed gain
+K_latAng = 10
+Kp_Ang = 10
+v_update_count = 0
+ang_update_count = 0
+last_u_nom = 0
+last_v_des = 0
+last_ang_des = 0
 
 def GPS_callb(msg):
     global x, y, x_vel, y_vel, ang_course
@@ -55,6 +68,9 @@ def WP_callb(msg):
     rospy.loginfo(wayPoints)
     x_ref = wayPoints.gps_wp[0].x
     y_ref = wayPoints.gps_wp[0].y
+    transect_p1 = [x_ref, y_ref]
+    transect_p2 = [wayPoints.gps_wp[1].x, wayPoints.gps_wp[1].y]
+    last_point = transect_p2
 
 def angleDiff(angle):
     while angle > math.pi:
@@ -64,9 +80,129 @@ def angleDiff(angle):
 
     return angle
 
+def transect_control(v_x_des):
+    global x_ref, y_ref, wayPoints, x_vel, y_vel, v_update_count, last_v_des, ang_update_count
+    global last_ang_des, last_u_nom
 
+    DIST_THRESHOLD = 1
+    dist = math.sqrt((x_ref - x)**2 + (y_ref - y)**2)
+
+    if (dist <= DIST_THRESHOLD):
+        # simple switching way points between two values
+        x_temp = x_ref
+        y_temp = y_ref
+        x_ref = last_point[0]
+        y_ref = last_point[1]
+        last_point[0] = x_ref
+        last_point[0] = y_ref
+    else:
+        u_rudder = 1515
+        v_update_rate = 5
+        ang_update_rate = 5
+        if v_update_count >= v_update_rate:
+            v_vert, u_nom = vertical_speed_control(des_point)
+            last_v_des = v_vert
+            last_u_nom = u_nom
+            v_update_count = 0
+        else:
+            v_update_count += 1
+            v_vert = last_v_des
+            u_nom = last_u_nom
+
+        if ang_update_count >= ang_update_rate:
+            ang_des = calc_lateral_ang(des_point, v_x_des)
+            last_ang_des = ang_des
+            ang_update_count = 0
+        else:
+            ang_update_count += 1
+            ang_des = last_ang_des
+
+        u_rudder = heading_control(ang_des)
+
+    return u_nom, u_rudder
+
+def vertical_speed_control(des_point):
+    '''calculate current velocity toward the waypoint, increase or decrease u_nom'''
+    global K_v, last_point, ang_course, theta
+    # Calculate drift away from the line
+    cur_point = last_point
+    next_point = [x_ref, y_ref]
+
+    line_angle = math.atan2((y_ref - last_point[1]),(x_ref - last_point[0]))
+    position_angle = math.atan2((y - last_point[1]), (x - last_point[0]))
+
+    # calculate position from the line
+    pos_ang_from_line = angleDiff(position_angle - line_angle) # position vector from line
+    dist = math.sqrt((y - last_point[1])**2 + (x - last_point[0])**2 )
+    drift_distance = dist * math.sin(pos_ang_from_line)
+
+    # calculate velocity away from the line
+    v_ang_from_line = angleDiff(ang_course - line_angle) # v_vector and line
+    drift_v = ang_course * math.sin(v_ang_from_line)
+
+    # heading vector from line
+    heading_from_lline = angleDiff(theta - line_angle)
+
+    # thrust direction
+    thrust_dir = heading_from_line/abs(heading_from_line)
+
+    # adding an integral term to remove error (ignore for now)
+    # drift_error_integral = self.drift_error_integral + drift_distance * self.dt
+    K = rospy.get_param('thrust/K', 10.0)
+
+    v_correct = -drift_distance * K_v #- self.drift_error_integral * self.K_vi
+    u_nom = (v_correct + drift_v) * thrust_dir * K
+
+    return v_correct, u_nom
+
+def calc_lateral_ang(des_point, v_x_des):
+    '''Adjust the ASV angle according to the desired transect (x) speed'''
+    global last_point, ang_course, theta, K_latAng
+
+    # Calculate drift away from the line
+    cur_point = last_point
+    next_point = des_point
+
+    line_angle = math.atan2((des_point[1] - last_point[1]),(des_point[0] - last_point[0]))
+    v_ang_from_line = angleDiff(ang_course - line_angle)
+
+    v_course = math.sqrt(x_vel**2 + y_vel**2)
+    v_x = v_course * math.cos(v_ang_from_line) # this v_x is along the line
+
+    # Calculate heading difference between robot and the line
+    heading_from_line = angleDiff(theta - line_angle)
+
+    if heading_from_line < 0:
+        des_line_heading = angleDiff(-(v_x - v_x_des) * K_latAng + heading_from_line)
+    else:
+        des_line_heading = angleDiff((v_x - v_x_des) * K_latAng + heading_from_line)
+
+
+    new_ang = angleDiff(des_line_heading + line_angle)
+    # print("V_x Difference ", v_x - v_x_des)
+    # print("Desired Angle ", new_ang)
+    # print("Current Angle ", self.state_est.theta)
+    return new_ang
+
+def heading_control(self, heading_des):
+    '''Orient the robot heading by turning the rudder'''
+    global theta, Kp_Ang
+    u_rudder = -angleDiff(heading_des - theta) * Kp_Ang
+    u_rudder = int(u_rudder + 1515)
+    if (u_rudder > 1834):
+        u_rudder = 1834
+    elif (u_rudder < 1195):
+        u_rudder = 1195
+
+    return u_rudder
+
+<<<<<<< HEAD
 def calc_control():
     global x_ref, y_ref, wayPoints, x_vel, y_vel, x, y, x_refPrev, y_refPrev
+=======
+def point_track_control():
+    global x_ref, y_ref, wayPoints, x_vel, y_vel
+>>>>>>> 544c298d309a2aeffdd5b2797061798422e1ee46
     DIST_THRESHOLD = 1
     '''Fix distance threshold and reference points'''
     dist = math.sqrt((x_ref - x)**2 + (y_ref - y)**2)
@@ -245,7 +381,7 @@ def main():
         run = rospy.get_param('/run', False)
         print(run)
         if run:
-            u_thrust, u_rudder = calc_control()
+            u_thrust, u_rudder = point_track_control()
             motor_cmd.port = u_thrust
             motor_cmd.strboard = u_thrust
             motor_cmd.servo = u_rudder

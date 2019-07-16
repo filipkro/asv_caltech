@@ -51,14 +51,14 @@ Adafruit_FXOS8700 accelmag = Adafruit_FXOS8700(0x8700A, 0x8700B);
 // below.
 
 // Offsets applied to raw x/y/z mag values
-float mag_offsets[3]            = { 0.93F, -7.47F, -35.23F };
+float mag_offsets[3]            = { -79.8F, -91.36F, 78.56F };
 
 // Soft iron error compensation matrix
-float mag_softiron_matrix[3][3] = { {  0.943,  0.011,  0.020 },
-                                    {  0.022,  0.918, -0.008 },
-                                    {  0.020, -0.008,  1.156 } };
+float mag_softiron_matrix[3][3] = { {  0.996,  -0.036,  0.004 },
+                                    {  -0.036,  0.983, 0.008 },
+                                    {  0.004, 0.008,  1.023 } };
 
-float mag_field_strength        = 50.23F;
+float mag_field_strength        = 39.73F;
 
 // Offsets applied to compensate for gyro zero-drift error for x/y/z
 float gyro_zero_offsets[3]      = { 0.0F, 0.0F, 0.0F };
@@ -155,7 +155,7 @@ void loop(void)
   gz *= 57.2958F;
 
   // Update the filter
-  filter.update(gx, gy, gz,
+  filter.update(gx*0.2, gy*0.2, gz*0.2,
                 accel_event.acceleration.x, accel_event.acceleration.y, accel_event.acceleration.z,
                 mx, my, mz);
 
