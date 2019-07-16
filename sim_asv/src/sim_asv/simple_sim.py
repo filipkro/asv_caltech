@@ -6,13 +6,12 @@ from motor_control.msg import MotorCommand
 import math
 import numpy as np
 
-pub_gps = rospy.Publisher('/GPS_coord', GPS_data, queue_size=10)
+pub_gps = rospy.Publisher('/GPS/xy_coord', GPS_data, queue_size=10)
 gps_message = GPS_data()
 
 x = 0.0
 y = 0.0
-theta_prev = 0.0
-v_prev = 0.0
+
 
 
 omega = 0.0
@@ -32,29 +31,30 @@ def angleDiff(angle):
 #def update_state(self, state, uR, uL, rudder):
 def update_state(msg):
     ''' for simulation '''
-    global pub_gps, gps_message, x, y, theta_prev, v_prev, v, omega, theta
+    global pub_gps, gps_message, x, y, v, omega, theta
 
     #uR = -uR/ 100
     #uL = -uL/ 100
 
-    uR = msg.strboard
-    uL = msg.port
+    uR = msg.strboard/400.0
+    uL = msg.port/400.0
     rudder = msg.servo
 
-
+    current_v = 0.0
+    current_ang = 0.0
 
     # Rudder Angle
-    rudder_rate = (1894 - 1195)/90
-    rudder_ang = (rudder - 1515) / rudder_rate
-    rudder_ang = -rudder_ang / 180 * math.pi
+    rudder_rate = (1894.0 - 1195.0)/90.0
+    rudder_ang = (rudder - 1515.0) / rudder_rate
+    rudder_ang = -rudder_ang / 180.0 * math.pi
 
-    b_l = 4 # sim linear drag
+    b_l = 4.0 # sim linear drag
     b_r = 2.5 # sim rotational drag
-    I_zz = 1 # sim moment of inertia
-    m = 5 # sim mass
+    I_zz = 1.0 # sim moment of inertia
+    m = 5.0 # sim mass
     robot_radius = 0.5
     x_cg = 0.9
-    w = 20
+    w = 20.0
 
     dt = 0.2
 
@@ -73,7 +73,6 @@ def update_state(msg):
     # current_v = 2 * state.x / w * (2*state.x / w - 2) * state.current_v
 
 #    current_v = state.current_v
-    current_v = v_prev
 
    # update state
     a = (uR + uL)/m - b_l/m * v
@@ -82,18 +81,18 @@ def update_state(msg):
     v = v + a * dt
     omega = omega + ang_acc * dt
 
-    robot_vx = v * math.cos(theta) + current_v * math.cos(theta)
-    robot_vy = v * math.sin(theta) + current_v * math.sin(theta)
+    robot_vx = v * math.cos(theta) + current_v * math.cos(current_ang)
+    robot_vy = v * math.sin(theta) + current_v * math.sin(current_ang)
     v_robot = np.array([robot_vx, robot_vy])
 
     ang_course = math.atan2(v_robot[1], v_robot[0])
     v_course = math.sqrt(np.dot(v_robot,v_robot))
 
-    omega = min(max(omega, -1), 1)
+    omega = min(max(omega, -1.0), 1.0)
 
     # update position
-    x = x + v*math.cos(angleDiff(theta)) * dt + current_v * math.cos(angleDiff(theta)) * dt
-    y = y + v*math.sin(angleDiff(theta)) * dt + current_v * math.sin(angleDiff(theta))* dt
+    x = x + v*math.cos(angleDiff(theta)) * dt + current_v * math.cos(angleDiff(current_ang)) * dt
+    y = y + v*math.sin(angleDiff(theta)) * dt + current_v * math.sin(angleDiff(current_ang))* dt
     theta = angleDiff(theta + omega * dt)
 
     gps_message.x = x
@@ -123,3 +122,7 @@ def main():
     rospy.init_node('sim')
     rospy.Subscriber('motor_controller/motor_cmd_reciever', MotorCommand, update_state)
     rospy.spin()
+
+
+if __name__ == '__main__':
+    main()
