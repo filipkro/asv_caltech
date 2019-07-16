@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
 import rospy
-#import asv_control
-from asv_control import sim
+from sim_asv import simple_sim
 
 if __name__ == '__main__':
-    sim.main()
+    simple_sim.main()

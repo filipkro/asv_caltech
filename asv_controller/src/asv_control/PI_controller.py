@@ -27,6 +27,9 @@ y_ref = 0.0
 I_thrust = 0.0
 I_rudder = 0.0
 h = 0.2
+x_refPrev = 0.0
+y_refPrev = 0.0
+
 
 # transect parameters
 transect_p1 = None
@@ -61,7 +64,7 @@ def IMU_callb(msg):
 
 def WP_callb(msg):
     global wayPoints, x_ref, y_ref
-    wayPoints = msg
+    wayPoints = msg.gps_wp
     rospy.loginfo(wayPoints)
     x_ref = wayPoints.gps_wp[0].x
     y_ref = wayPoints.gps_wp[0].y
@@ -83,7 +86,7 @@ def transect_control(v_x_des):
 
     DIST_THRESHOLD = 1
     dist = math.sqrt((x_ref - x)**2 + (y_ref - y)**2)
-    
+
     if (dist <= DIST_THRESHOLD):
         # simple switching way points between two values
         x_temp = x_ref
@@ -125,7 +128,7 @@ def vertical_speed_control(des_point):
     cur_point = last_point
     next_point = [x_ref, y_ref]
 
-    line_angle = math.atan2((y_ref - last_point[1]),(x_ref - last_point[0]))                
+    line_angle = math.atan2((y_ref - last_point[1]),(x_ref - last_point[0]))
     position_angle = math.atan2((y - last_point[1]), (x - last_point[0]))
 
     # calculate position from the line
@@ -140,7 +143,7 @@ def vertical_speed_control(des_point):
     # heading vector from line
     heading_from_lline = angleDiff(theta - line_angle)
 
-    # thrust direction 
+    # thrust direction
     thrust_dir = heading_from_line/abs(heading_from_line)
 
     # adding an integral term to remove error (ignore for now)
@@ -155,12 +158,12 @@ def vertical_speed_control(des_point):
 def calc_lateral_ang(des_point, v_x_des):
     '''Adjust the ASV angle according to the desired transect (x) speed'''
     global last_point, ang_course, theta, K_latAng
-    
+
     # Calculate drift away from the line
     cur_point = last_point
     next_point = des_point
 
-    line_angle = math.atan2((des_point[1] - last_point[1]),(des_point[0] - last_point[0]))                
+    line_angle = math.atan2((des_point[1] - last_point[1]),(des_point[0] - last_point[0]))
     v_ang_from_line = angleDiff(ang_course - line_angle)
 
     v_course = math.sqrt(x_vel**2 + y_vel**2)
@@ -173,7 +176,7 @@ def calc_lateral_ang(des_point, v_x_des):
         des_line_heading = angleDiff(-(v_x - v_x_des) * K_latAng + heading_from_line)
     else:
         des_line_heading = angleDiff((v_x - v_x_des) * K_latAng + heading_from_line)
-    
+
 
     new_ang = angleDiff(des_line_heading + line_angle)
     # print("V_x Difference ", v_x - v_x_des)
@@ -193,15 +196,31 @@ def heading_control(self, heading_des):
 
     return u_rudder
 
+<<<<<<< HEAD
+def calc_control():
+    global x_ref, y_ref, wayPoints, x_vel, y_vel, x, y, x_refPrev, y_refPrev
+=======
 def point_track_control():
     global x_ref, y_ref, wayPoints, x_vel, y_vel
+>>>>>>> 544c298d309a2aeffdd5b2797061798422e1ee46
     DIST_THRESHOLD = 1
     '''Fix distance threshold and reference points'''
     dist = math.sqrt((x_ref - x)**2 + (y_ref - y)**2)
     print("Desired wp: ", x_ref, y_ref)
-    if dist <= DIST_THRESHOLD:
+    print("vel(x,y): ", x_vel, y_vel)
+
+#######################
+    if y_ref - y_refPrev != 0:
+        k = (x_refPrev - x_ref)/(y_ref - y_refPrev)
+        m = y_ref - k * x_ref
+    else:
+        k = 1
+        m = 100
+#######################
+
+    if dist <= DIST_THRESHOLD or y-k*x > m:
         print("hej")
-        if len(wayPoints.gps_wp) == 0:
+        if len(wayPoints) == 0:
             ''' Set rudder angle to point boat upstream '''
             ''' Set thrust to keep constant velocity '''
             u_thrust = 0
@@ -209,7 +228,9 @@ def point_track_control():
             ''' As of now sets thrust to 0 and rudder straight '''
             return u_thrust, u_rudder
         else:
-             point = wayPoints.gps_wp.pop(0)
+             point = wayPoints.pop(0)
+             x_refPrev = x_ref
+             y_refPrev = y_ref
              x_ref = point.x
              y_ref = point.y
 
@@ -243,13 +264,18 @@ def thrust_control(v):
 
 
     e_v = v_ref - v
+    print("ev: ", e_v)
     '''Forward difference discretized PI'''
-    u = K*e_v + K/Ti * I_thrust
+#    u = K*e_v + K/Ti * I_thrust
     '''saturation'''
-    u_thrust = np.clip(u, MIN_THRUST, MAX_THRUST)
+#    u_thrust = np.clip(u, MIN_THRUST, MAX_THRUST)
     '''tracking, works as anti-windup. See http://www.control.lth.se/fileadmin/control/Education/EngineeringProgram/FRTN01/2019_lectures/L08_slides6.pdf
     pg. 40-47 for details'''
    # I_thrust = I_thrust + e_v * h + h/Tr*(u_thrust - u)
+   u = np.clip(-K*(e_ang + h/Ti*I_rudder) + 1515.0, MIN_RUDDER, MAX_RUDDER)
+   if u >= MIN_THRUST + 50  and u <= MAX_THRUST - 50:
+       I_thrust = I_thrust + e_ang
+
     print("I_thrust: ", I_thrust)
     return u_thrust
 
@@ -260,11 +286,11 @@ def rudder_control(x_ref, y_ref, v):
     ### Control parameters ###
     MAX_RUDDER = 1834
     MIN_RUDDER = 1195
-    VEL_THRESHOLD = rospy.get_param('/vel_threshold', 100)
+    VEL_THRESHOLD = rospy.get_param('/vel_threshold', -1)
     '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
     K = rospy.get_param('rudder/K', 1.0)
     Ti = rospy.get_param('rudder/Ti', 1.0)
-    Tr = 1
+    Tr = Ti/2
     ##########################
     print("RUDDER:")
     print("K: ", K)
@@ -276,7 +302,6 @@ def rudder_control(x_ref, y_ref, v):
         But might be very sensitive, I'll try it! '''
     if v < VEL_THRESHOLD:
         e_ang = angleDiff(des_angle - theta)
-        print("hej")
     else:
         e_ang = angleDiff(des_angle - ang_course)
 
@@ -285,21 +310,59 @@ def rudder_control(x_ref, y_ref, v):
     print("theta", theta)
     print("e ang", e_ang)
 
-
+#alt 1
     '''Forward difference discretized PI'''
-    u = -(K*e_ang + K/Ti * I_rudder) + 1600
+    #u = -(K*e_ang + K/Ti * I_rudder) + 1600
+#    u = -(K*e_ang + I_rudder) + 1550
     '''saturation'''
-    u_rudder = np.clip(u, MIN_RUDDER, MAX_RUDDER)
+#    u_rudder = np.clip(u, MIN_RUDDER, MAX_RUDDER)
     '''tracking, works as anti-windup. See http://www.control.lth.se/fileadmin/control/Education/EngineeringProgram/FRTN01/2019_lectures/L08_slides6.pdf
     pg. 40-47 for details'''
-    I_rudder = I_rudder +  e_ang * h + h/Tr*(u_rudder - u)
+#    I_rudder = I_rudder +  K*h*(e_ang/Ti + (u_rudder - u)/Tr)
+#alt 2
+    u = np.clip(-K*(e_ang + h/Ti*I_rudder) + 1515.0, MIN_RUDDER, MAX_RUDDER)
+    if u >= MIN_RUDDER + 50  and u <= MAX_RUDDER - 50:
+        I_rudder = I_rudder + e_ang
 
     print("I_rudder: ", I_rudder)
-    return int(u_rudder)
+    return int(u)
     '''set Tr to 1 and move K/Ti to calculation of u??'''
 
+def create_wpList():
+    global wayPoints
+    point = GPS_data()
+    list = []
+    point.x = 2.0
+    point.y = 0.0
+    wayPoints.append(point)
+
+    point = GPS_data()
+    point.x = 5.0
+    point.y = 2.0
+    wayPoints.append(point)
+
+    point = GPS_data()
+    point.x = 7.0
+    point.y = 6.0
+    wayPoints.append(point)
+
+    point = GPS_data()
+    point.x = 5.0
+    point.y = 5.0
+    wayPoints.append(point)
+
+    point = GPS_data()
+    point.x = 3.0
+    point.y = 2.0
+    wayPoints.append(point)
+
+    point = GPS_data()
+    point.x = 0.0
+    point.y = 0.0
+    wayPoints.append(point)
+
 def main():
-    global samp_time
+    global samp_time, wayPoints
     rospy.init_node('main_controller')
     rospy.Subscriber('GPS/xy_coord', GPS_data, GPS_callb)
     rospy.Subscriber('heading', Float32, IMU_callb)
@@ -309,6 +372,10 @@ def main():
     ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
     motor_cmd = MotorCommand()
     rate = rospy.Rate(1/h)
+
+    create_wpList()
+
+    print(wayPoints)
 
     while not rospy.is_shutdown():
         run = rospy.get_param('/run', False)
