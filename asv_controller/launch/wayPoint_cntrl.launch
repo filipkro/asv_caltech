@@ -3,6 +3,7 @@
 	<!-- Motor command distributor -->
     <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
         <param name="sim" value="False"/>
+        <param name='compass_offset' value='109.0'>
     </node>
 
     <!-- Arduino + Servo + IMU -->
@@ -47,7 +48,7 @@
     </node>
 
     <!-- ADCP -->
-    <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen" launch-prefix="sudo"/>
+    <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen"/>
 
     <!--  GPS -->
     <!-- Should origin be sent as a param?? -->
@@ -72,6 +73,7 @@
         /rudder/K: 5.0
         /rudder/Ti: 1.0
         /vel_threshold: 0.1
+        /nav_mode: 'Waypoint'
       </rosparam>
     </node>
 
