@@ -40,8 +40,8 @@ def update_state(msg):
     uL = msg.port/400.0
     rudder = msg.servo
 
-    current_v = 0.0
-    current_ang = 0.0
+    current_v = 1.0
+    current_ang = math.pi/2
 
     # Rudder Angle
     rudder_rate = (1894.0 - 1195.0)/90.0
