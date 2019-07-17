@@ -67,11 +67,11 @@
       <rosparam>
         /run: False
         /v_ref: 0.5
-        /thrust/K: 5.0
+        /thrust/K: 20.0
         /thrust/Ti: 1.0
-        /rudder/K: 5.0
-        /rudder/Ti: 1.0
-        /vel_threshold: 0.1
+        /rudder/K: 1000.0
+        /rudder/Ti: 10.0
+        /vel_threshold: 0.2
       </rosparam>
     </node>
 
