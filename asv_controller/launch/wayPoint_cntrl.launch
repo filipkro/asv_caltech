@@ -47,7 +47,7 @@
     </node>
 
     <!-- ADCP -->
-    <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen" />
+    <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen" launch-prefix="sudo"/>
 
     <!--  GPS -->
     <!-- Should origin be sent as a param?? -->

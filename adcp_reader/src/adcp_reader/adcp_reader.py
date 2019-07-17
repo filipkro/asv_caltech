@@ -37,7 +37,7 @@ def setup_adcp():
     print("Angle offset message: ", s)
 
     time_stamp = datetime.datetime.now().replace(microsecond=0).strftime('%y-%m-%d %H.%M.%S')
-    adcp_filename = '/media/ubuntu/9C33-6BBD28/ADCP' + time_stamp + ".bin"
+    adcp_filename = '/media/ubuntu/9C33-6BBD28/Data/ADCP' + time_stamp + ".bin"
     adcp_f = open(adcp_filename, 'wb')
 
 def send_ADCP(command):
