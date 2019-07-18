@@ -12,6 +12,7 @@ adcp_ser = None
 ANGLE_OFFSET = 45
 adcp_f = None
 adcp_filename = ''
+adcp_pub = rospy.Publisher('adcp/data', Int64MultiArray, queue_size=10)
 
 def setup_adcp():
     '''Initialize adcp serial port, sending appropriate 
@@ -81,7 +82,7 @@ def start_ping():
 
 def read_ensemble(verbose=False):
     '''Read an ensemble of ADCP data. Then log it in a file'''
-    global adcp_ser, adcp_f
+    global adcp_ser, adcp_f, adcp_pub
     header = adcp_ser.read(2)
     if header != b'\x7f\x7f':
         print('ERROR no header: ', header)
@@ -225,11 +226,17 @@ def extract_data(all_data):
         GPS_msg.append(all_data[g_offset+15: g_offset+15+msg_size])
 
     delta_times_double = [struct.unpack('d', b)[0] for b in delta_times_bytes] # convert to double
+    
     surface_vel = relative_velocities[0]
     essential = [heading, roll, pitch]
     essential = essential + bt_ranges
     essential = essential + bt_velocities
     essential = essential + surface_vel
+
+    message = Int64MultiArray()
+    message.data = essential
+    adcp_pub.publish(message)
+
     return essential
 
 def angleDiff(angle):
@@ -251,7 +258,6 @@ def angleDiff_deg(angle):
 # make this the main()
 def main():
     '''extract adcp data when it is sending back ensembles'''
-    adcp_pub = rospy.Publisher('adcp/data', Int64MultiArray, queue_size=10)
 
     setup_adcp()
     start_ping()

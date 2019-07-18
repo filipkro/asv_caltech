@@ -59,7 +59,7 @@ def GPS_callb(msg):
 
 def IMU_callb(msg):
     global theta
-    theta = angleDiff(msg.data - 109.0/180.0 * math.pi)
+    theta = msg.data
     #print('IMU CALLBACK')
    # print("degree ", msg.data/math.pi * 180)
    # print("radian ", msg.data)
@@ -75,9 +75,14 @@ def WP_callb(msg):
     # print("x_ref: ", x_ref)
     # print("y_ref: ", y_ref)
     # print(wayPoints.gps_wp)
-    transect_p1 = [x_ref, y_ref]
-    transect_p2 = [wayPoints[1].x, wayPoints[1].y]
-    last_point = transect_p2
+    nav_mode = rospy.get_param('\nav_mode')
+        
+    if (nav_mode == 'Waypoint'):
+        pass
+    else:
+        transect_p1 = [x_ref, y_ref]
+        transect_p2 = [wayPoints[1].x, wayPoints[1].y]
+        last_point = transect_p2
 
 def angleDiff(angle):
     while angle > math.pi:

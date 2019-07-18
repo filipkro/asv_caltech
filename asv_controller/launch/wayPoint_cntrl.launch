@@ -3,6 +3,7 @@
 	<!-- Motor command distributor -->
     <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
         <param name="sim" value="False"/>
+        <param name='compass_offset' value='109.0'>
     </node>
 
     <!-- Arduino + Servo + IMU -->
@@ -72,6 +73,7 @@
         /rudder/K: 1000.0
         /rudder/Ti: 10.0
         /vel_threshold: 0.2
+        /nav_mode: 'Waypoint'
       </rosparam>
     </node>
 
