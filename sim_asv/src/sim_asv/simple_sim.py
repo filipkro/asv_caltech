@@ -3,11 +3,14 @@
 import rospy
 from gps_reader.msg import GPS_data
 from motor_control.msg import MotorCommand
+from std_msgs.msg import Float32
 import math
 import numpy as np
 
 pub_gps = rospy.Publisher('/GPS/xy_coord', GPS_data, queue_size=10)
 gps_message = GPS_data()
+
+pub_imu = rospy.Publisher('/heading', Float32, queue_size=10)
 
 x = 0.0
 y = 0.0
@@ -31,21 +34,21 @@ def angleDiff(angle):
 #def update_state(self, state, uR, uL, rudder):
 def update_state(msg):
     ''' for simulation '''
-    global pub_gps, gps_message, x, y, v, omega, theta
+    global pub_gps, gps_message, pub_imu, x, y, v, omega, theta
 
     #uR = -uR/ 100
     #uL = -uL/ 100
 
-    uR = msg.strboard/400.0
-    uL = msg.port/400.0
+    uR = msg.strboard/110.0
+    uL = msg.port/110.0
     rudder = msg.servo
 
     current_v = 1.0
-    current_ang = math.pi/2
+    current_ang = math.pi
 
     # Rudder Angle
     rudder_rate = (1894.0 - 1195.0)/90.0
-    rudder_ang = (rudder - 1515.0) / rudder_rate
+    rudder_ang = (rudder - 1600.0) / rudder_rate
     rudder_ang = -rudder_ang / 180.0 * math.pi
 
     b_l = 4.0 # sim linear drag
@@ -102,6 +105,7 @@ def update_state(msg):
     gps_message.ang_course = ang_course
 
     pub_gps.publish(gps_message)
+    pub_imu.publish(theta)
 
     print("x: ", x)
     print("y: ", y)
