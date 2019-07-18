@@ -42,15 +42,11 @@ def update_state(msg):
     uL = msg.port/110.0
     rudder = msg.servo
 
-<<<<<<< HEAD
     current_v = rospy.get_param('v_current', 0.0)
     current_ang = rospy.get_param('current_ang', math.pi)
     current = Float32MultiArray()
     current.data = [current_ang, current_v]
-=======
-    current_v = 0.2
-    current_ang = math.pi/2
->>>>>>> cd056c8a3c82c58c67e3041fd04bfceae1efd7a6
+
 
     # Rudder Angle
     rudder_rate = (1894.0 - 1195.0)/90.0

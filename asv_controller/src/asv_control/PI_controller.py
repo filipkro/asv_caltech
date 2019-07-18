@@ -14,34 +14,6 @@ I_thrust = 0.0
 I_rudder = 0.0
 h = 0.2
 
-<<<<<<< HEAD
-def IMU_callb(msg):
-    global theta
-    theta = msg.data
-    #print('IMU CALLBACK')
-   # print("degree ", msg.data/math.pi * 180)
-   # print("radian ", msg.data)
-    #print('theta ', theta)
-
-def WP_callb(msg):
-    global wayPoints, x_ref, y_ref
-    wayPoints = msg.gps_wp
-    rospy.loginfo(wayPoints)
-    x_ref = wayPoints[0].x
-    y_ref = wayPoints[0].y
-    # print("callback")
-    # print("x_ref: ", x_ref)
-    # print("y_ref: ", y_ref)
-    # print(wayPoints.gps_wp)
-    nav_mode = rospy.get_param('\nav_mode')
-
-    if (nav_mode == 'Waypoint'):
-        pass
-    else:
-        transect_p1 = [x_ref, y_ref]
-        transect_p2 = [wayPoints[1].x, wayPoints[1].y]
-        last_point = transect_p2
-=======
 state_asv = [0.0, 0.0, 0.0] # x, y, theta
 state_ref = [0.0, 0.0, 0.0] # x_ref, y_ref, theta_ref
 v_asv = [0.0, 0.0, 0.0] # x_ve;, y_vel, ang_course
@@ -56,7 +28,6 @@ def update_variable(s_asv, s_ref, v, target_i, wP):
     v_asv = v
     target_index = target_i
     wayPoints = wP
->>>>>>> cd056c8a3c82c58c67e3041fd04bfceae1efd7a6
 
 def angleDiff(angle):
     while angle > math.pi:
@@ -76,38 +47,8 @@ def calc_control():
     # point = wayPoints[target_index]
     # x_ref = point.x
     # y_ref = point.y
-
-<<<<<<< HEAD
-    if dist <= DIST_THRESHOLD:
-        print("hej")
-        if len(wayPoints) == 0:
-            ''' Set rudder angle to point boat upstream '''
-            ''' Set thrust to keep constant velocity '''
-            u_thrust = 0
-            u_rudder = 1515
-            ''' As of now sets thrust to 0 and rudder straight '''
-            return u_thrust, u_rudder
-        else:
-             point = wayPoints.pop(0)
-             x_refPrev = x_ref
-             y_refPrev = y_ref
-             x_ref = point.x
-             y_ref = point.y
-
-    v = math.sqrt(x_vel**2 + y_vel**2)
-
-    '''get velocity in robots coordinates'''
-    rot = np.array([[np.cos(theta), np.sin(theta)], [-np.sin(theta), np.cos(theta)]])
-    vel_unrot = np.array([[x_vel],[y_vel]])
-    vel_robot = np.matmul(rot, vel_unrot)
-
-    u_thrust = thrust_control(vel_robot[0,0])
-   # u_thrust = 0
-    u_rudder = rudder_control(x_ref, y_ref, v)
-=======
     u_thrust = thrust_control(v_asv)
     u_rudder = rudder_control(state_asv, state_ref, v_asv)
->>>>>>> cd056c8a3c82c58c67e3041fd04bfceae1efd7a6
 
     return u_thrust, u_rudder
 
@@ -158,7 +99,7 @@ def rudder_control(state_asv, state_ref, v_asv):
     rospy.logdebug("RUDDER:")
     rospy.logdebug("K: " + str(K))
     rospy.logdebug("Ti: "+ str(Ti))
-    
+
 
     des_angle = math.atan2(state_ref[1] - state_asv[1], state_ref[0] - state_asv[0])
     v = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
