@@ -190,7 +190,7 @@ include_directories(
 #catkin_install_python(PROGRAMS nodes/modelling_node.py
 #		      DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
-catkin_install_python(PROGRAMS nodes/PI_node.py
+catkin_install_python(PROGRAMS nodes/master_control_node.py
 		      DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 #############

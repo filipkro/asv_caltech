@@ -36,11 +36,11 @@ def update_state(msg):
     #uR = -uR/ 100
     #uL = -uL/ 100
 
-    uR = msg.strboard/400.0
-    uL = msg.port/400.0
+    uR = msg.strboard/110.0
+    uL = msg.port/110.0
     rudder = msg.servo
 
-    current_v = 1.0
+    current_v = 0.2
     current_ang = math.pi/2
 
     # Rudder Angle

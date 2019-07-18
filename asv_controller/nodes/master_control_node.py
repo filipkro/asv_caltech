@@ -2,7 +2,7 @@
 
 import rospy
 #import asv_control
-from asv_control import PI_controller
+from asv_control import master_controller
 
 if __name__ == '__main__':
-    PI_controller.main()
+    master_controller.main()
