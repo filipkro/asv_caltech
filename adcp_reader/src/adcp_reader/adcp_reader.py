@@ -120,6 +120,8 @@ def read_ensemble(verbose=False):
 
     return all_data
 
+def s16(value):
+    return -(value & 0x8000) | (value & 0x7fff)
     '''
 Input:
     Ensemble: byte str ings of ensemble data
@@ -153,7 +155,7 @@ def extract_data(all_data):
     num_beams = all_data[fixed_offset+8]
     num_cells = all_data[fixed_offset+9]
     pings_per_ensemble = int(''.join(reversed(all_data[fixed_offset+10: fixed_offset+12])).encode('hex'),16)
-    deoth_cell_length = int(''.join(reversed(all_data[fixed_offset+12: fixed_offset+14])).encode('hex'),16)
+    depth_cell_length = int(''.join(reversed(all_data[fixed_offset+12: fixed_offset+14])).encode('hex'),16)
     coord_transform = all_data[fixed_offset+25]
     heading_alignment = int(''.join(reversed(all_data[fixed_offset+26: fixed_offset+28])).encode('hex'),16)
     # print('Heading alignment: ', heading_alignment)
@@ -161,13 +163,13 @@ def extract_data(all_data):
     # VARIABLE LEADER
     variable_offset = offsets[1]
 
-    transducer_depth = int(''.join(reversed(all_data[variable_offset+16:variable_offset+18])).encode('hex'),16) #1 dm
-    heading = int(''.join(reversed(all_data[variable_offset+20:variable_offset+22])).encode('hex'),16) # degree
-    pitch = int(''.join(reversed(all_data[variable_offset+24:variable_offset+26])).encode('hex'),16) # degree
-    roll = int(''.join(reversed(all_data[variable_offset+22:variable_offset+24])).encode('hex'),16) # degree
+    transducer_depth = int(''.join(reversed(all_data[variable_offset+14:variable_offset+16])).encode('hex'),16) #1 dm
+    heading = int(''.join(reversed(all_data[variable_offset+18:variable_offset+20])).encode('hex'),16) # degree
+    pitch = s16(int(''.join(reversed(all_data[variable_offset+22:variable_offset+24])).encode('hex'),16)) # degree
+    roll = s16(int(''.join(reversed(all_data[variable_offset+20:variable_offset+22])).encode('hex'),16)) # degree
     salinity = int(''.join(reversed(all_data[variable_offset+24:variable_offset+26])).encode('hex'),16) # 0 to 40 ppm
     temperature = int(''.join(reversed(all_data[variable_offset+26:variable_offset+28])).encode('hex'),16) # degree
-
+    print('HEADING', heading)
     # VELOCITY PROFILE
     velocity_profile_offset = offsets[2]
     relative_velocities = []
@@ -228,15 +230,14 @@ def extract_data(all_data):
     delta_times_double = [struct.unpack('d', b)[0] for b in delta_times_bytes] # convert to double
     
     surface_vel = relative_velocities[0]
-    essential = [heading, roll, pitch]
+    essential = [heading, roll, pitch, transducer_depth]
     essential = essential + bt_ranges
     essential = essential + bt_velocities
     essential = essential + surface_vel
-
     message = Int64MultiArray()
     message.data = essential
     adcp_pub.publish(message)
-
+    
     return essential
 
 def angleDiff(angle):
