@@ -3,7 +3,7 @@
 import rospy
 from gps_reader.msg import GPS_data
 from motor_control.msg import MotorCommand
-from std_msgs.msg import Float32
+from std_msgs.msg import Float32, Float32MultiArray
 import math
 import numpy as np
 
@@ -11,11 +11,10 @@ pub_gps = rospy.Publisher('/GPS/xy_coord', GPS_data, queue_size=10)
 gps_message = GPS_data()
 
 pub_imu = rospy.Publisher('/heading', Float32, queue_size=10)
+pub_adcp = rospy.Publisher('adcp/data', Float32MultiArray, queue_size=10)
 
 x = 0.0
 y = 0.0
-
-
 
 omega = 0.0
 v = 0.0
@@ -43,8 +42,10 @@ def update_state(msg):
     uL = msg.port/110.0
     rudder = msg.servo
 
-    current_v = 1.0
-    current_ang = math.pi
+    current_v = rospy.get_param('v_current', 0.0)
+    current_ang = rospy.get_param('current_ang', math.pi)
+    current = Float32MultiArray()
+    current.data = [current_ang, current_v]
 
     # Rudder Angle
     rudder_rate = (1894.0 - 1195.0)/90.0
@@ -106,6 +107,7 @@ def update_state(msg):
 
     pub_gps.publish(gps_message)
     pub_imu.publish(theta)
+    pub_adcp.publish(current)
 
     print("x: ", x)
     print("y: ", y)
