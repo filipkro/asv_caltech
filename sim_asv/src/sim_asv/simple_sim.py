@@ -3,15 +3,16 @@
 import rospy
 from gps_reader.msg import GPS_data
 from motor_control.msg import MotorCommand
+from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32, Float32MultiArray
+from tf.transformations import quaternion_from_euler as qfe
 import math
 import numpy as np
 
 pub_gps = rospy.Publisher('/GPS/xy_coord', GPS_data, queue_size=10)
-gps_message = GPS_data()
-
 pub_imu = rospy.Publisher('/heading', Float32, queue_size=10)
 pub_adcp = rospy.Publisher('adcp/data', Float32MultiArray, queue_size=10)
+pub_pose = rospy.Publisher('/robot/pose', PoseStamped, queue_size=10)
 
 x = 0.0
 y = 0.0
@@ -33,7 +34,7 @@ def angleDiff(angle):
 #def update_state(self, state, uR, uL, rudder):
 def update_state(msg):
     ''' for simulation '''
-    global pub_gps, gps_message, pub_imu, x, y, v, omega, theta
+    global pub_gps, gps_message, pub_imu, pub_pose, pub_adcp, x, y, v, omega, theta
 
     #uR = -uR/ 100
     #uL = -uL/ 100
@@ -42,11 +43,13 @@ def update_state(msg):
     uL = msg.port/110.0
     rudder = msg.servo
 
+    gps_message = GPS_data()
+    pose = PoseStamped()
+    current = Float32MultiArray()
+
     current_v = rospy.get_param('v_current', 0.0)
     current_ang = rospy.get_param('current_ang', math.pi)
-    current = Float32MultiArray()
     current.data = [current_ang, current_v]
-
 
     # Rudder Angle
     rudder_rate = (1894.0 - 1195.0)/90.0
@@ -106,15 +109,29 @@ def update_state(msg):
     gps_message.y_vel = robot_vy
     gps_message.ang_course = ang_course
 
+    quat = qfe(0,0,theta)
+    pose.pose.position.x = x
+    pose.pose.position.y = y
+    pose.pose.position.z = 0.0
+    pose.pose.orientation.x = quat[0]
+    pose.pose.orientation.y = quat[1]
+    pose.pose.orientation.z = quat[2]
+    pose.pose.orientation.w = quat[3]
+    pose.header.frame_id = "/map"
+
     pub_gps.publish(gps_message)
     pub_imu.publish(theta)
     pub_adcp.publish(current)
+    pub_pose.publish(pose)
 
     print("x: ", x)
     print("y: ", y)
+    print("theta: ", theta)
     print("xvel: ", robot_vx)
     print("yvel: ", robot_vy)
     print("ang_course: ", ang_course)
+    print("current_ang", current_ang)
+    print("current_v", current_v)
     # print(state.v)
     # print(state.theta)
     # print("x, y:", state.x, state.y)

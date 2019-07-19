@@ -5,17 +5,19 @@ import PI_controller
 import transect_controller
 from gps_reader.msg import GPS_data, GPS_WayPoints
 from motor_control.msg import MotorCommand
-from geometry_msgs.msg import PointStamped
-from std_msgs.msg import Float32
+from geometry_msgs.msg import PointStamped, PoseStamped
+from std_msgs.msg import Float32, Float32MultiArray
 import math
 from visualization_msgs.msg import Marker, MarkerArray # for simulation
 
 state_asv = [0.0, 0.0, 0.0] # x, y, theta
 state_ref = [0.0, 0.0, 0.0] # x_ref, y_ref, theta_ref
 v_asv = [0.0, 0.0, 0.0] # x_ve;, y_vel, ang_course
+current = [0.0, 0.0] #current_velocity, current_angle
 wayPoints = [] # list of waypoints
 target_index = 0 # index of target way point in the wayPoints
 h = 0.2
+vref = 0.0
 
 def GPS_callb(msg):
     global state_asv, v_asv
@@ -41,12 +43,16 @@ def IMU_callb(msg):
     global state_asv
     state_asv[2] = msg.data
 
+def ADCP_callb(msg):
+    global current
+    current = msg.data
+
 def updateTarget():
-    '''Update target way point base on current position
+    '''Update target way point based on current position
         return True when there's still point to navigate
         '''
     global target_index
-    dist_2_target = math.sqrt( (state_asv[0] - state_ref[0])**2 
+    dist_2_target = math.sqrt( (state_asv[0] - state_ref[0])**2
         + (state_asv[1] - state_ref[1])**2 )
 
     DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
@@ -79,7 +85,7 @@ def updateTarget():
 
     else:
         return True
-    
+
 
 def create_wpList():
     global wayPoints
@@ -117,8 +123,18 @@ def create_wpList():
     point.y = 0.0
     wayPoints.append(point)
 
+def navGoal_callb(msg):
+    global wayPoints
+    point = msg.pose.position
+    state_ref[0] = point.x
+    state_ref[1] = point.y
+    state_ref[2] = point.z
+    #print("WP added! ", point)
+    #print("state ref:", state_ref)
+    #print(wayPoints)
+
 def switchControl():
-    controller_type = rospy.get_param('/nav_mode', 'Waypoint') 
+    controller_type = rospy.get_param('/nav_mode', 'Waypoint')
     if (controller_type == "Waypoint"):
         return PI_controller
     elif (controller_type == "Transect"):
@@ -127,42 +143,47 @@ def switchControl():
         return PI_controller
 
 def main():
-    global samp_time, wayPoints, h
+    global samp_time, wayPoints, h, vref, current
     rospy.init_node('master_controller')
-    
+
     # information update subscriber
     rospy.Subscriber('GPS/xy_coord', GPS_data, GPS_callb)
     rospy.Subscriber('heading', Float32, IMU_callb)
     rospy.Subscriber('ControlCenter/gps_wp', GPS_WayPoints, WP_callb)
-    
+    rospy.Subscriber('adcp/data', Float32MultiArray, ADCP_callb) # needs fixing for real thing
+    rospy.Subscriber('move_base_simple/goal', PoseStamped, navGoal_callb)
+
     # publish to motor controller
     motor_cmd = MotorCommand()
     ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
 
     rate = rospy.Rate(1/h)
-    create_wpList()
+#    create_wpList()
     # print(wayPoints)
 
     while not rospy.is_shutdown():
-        # Master control param 
+        # Master control param
             # /run: to run or not to run
             # /control_type: WayPoint, Transect, or something else?
         run = rospy.get_param('/run', False)
         controller = switchControl()
         rospy.logdebug('Target Index '+ str(target_index))
-        if run or updateTarget():
-            controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints)
+        trgt_updated = updateTarget()
+        if run or trgt_updated:
+            controller.destinationReached(not trgt_updated)
+            controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
             u_thrust, u_rudder = controller.calc_control()
             motor_cmd.port = u_thrust
             motor_cmd.strboard = u_thrust
             motor_cmd.servo = u_rudder
         else:
-            motor_cmd.port = 0.0
-            motor_cmd.strboard = 0.0
-            motor_cmd.servo = 1600
+            controller.destinationReached(not trgt_updated)
+            u_thrust, u_rudder = controller.calc_control()
+            motor_cmd.port = u_thrust
+            motor_cmd.strboard = u_thrust
+            motor_cmd.servo = u_rudder
 
-        # print(motor_cmd)
+        rospy.logdebug('MotorCmd ' + str(motor_cmd))
         ctrl_pub.publish(motor_cmd)
 
         rate.sleep()
-
