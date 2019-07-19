@@ -4,7 +4,7 @@ import rospy
 from std_msgs.msg import Float32MultiArray, Int64MultiArray
 from gps_reader.msg import GPS_data, GPS_WayPoints
 from motor_control.msg import MotorCommand
-from geometry_msgs.msg import PointStamped
+from geometry_msgs.msg import PointStamped, PoseStamped
 from std_msgs.msg import Float32
 import math
 import numpy as np
@@ -88,6 +88,12 @@ def WP_callb(msg):
     transect_p1 = [x_ref, y_ref]
     transect_p2 = [wayPoints[1].x, wayPoints[1].y]
     last_point = transect_p2
+
+def navGoal_callb(msg):
+    global wayPoints
+    point = msg.pose.position
+    wayPoints.append(point)
+    print("WP added! ", point)
 
 def angleDiff(angle):
     while angle > math.pi:
@@ -268,7 +274,7 @@ def calc_control():
         if abs(e_ang) > math.pi/2:
             '''if goal point is downstream go towards it by floating with current'''
             e_ang = angleDiff(math.pi - des_angle - ang_dir)
-            v_ref = -v_ref
+            v_ref = -v_ref/2
 
     e_v = v_ref - vel_robot[0,0]
     u_rudder = rudder_control(e_ang)
@@ -288,7 +294,7 @@ def thrust_control(e_v):
     MAX_THRUST = 1000
     MIN_THRUST = -1000
     '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
-    K = rospy.get_param('thrust/K', 10.0)
+    K = rospy.get_param('thrust/K', 1000.0)
     Ti = rospy.get_param('thrust/Ti', 1.0)
     ##########################
     print("THRUST:")
@@ -297,7 +303,7 @@ def thrust_control(e_v):
 
     u = np.clip(K*(e_v + h/Ti*I_thrust), MIN_THRUST, MAX_THRUST)
     if u >= MIN_THRUST + 50  and u <= MAX_THRUST - 50:
-       I_thrust = I_thrust + e_v
+        I_thrust = I_thrust + e_v
 
     print("I_thrust: ", I_thrust)
 
@@ -320,8 +326,8 @@ def rudder_control(e_ang):
     MIN_RUDDER = 1195
 
     '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
-    K = rospy.get_param('rudder/K', 1.0)
-    Ti = rospy.get_param('rudder/Ti', 1.0)
+    K = rospy.get_param('rudder/K', 2000.0)
+    Ti = rospy.get_param('rudder/Ti', 5.0)
     ##########################
     print("RUDDER:")
     print("K: ", K)
@@ -390,12 +396,13 @@ def main():
     rospy.Subscriber('heading', Float32, IMU_callb)
     rospy.Subscriber('ControlCenter/gps_wp', GPS_WayPoints, WP_callb)
     rospy.Subscriber('adcp/data', Float32MultiArray, ADCP_callb)
+    rospy.Subscriber('move_base_simple/goal', PoseStamped, navGoal_callb)
 
     ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
     motor_cmd = MotorCommand()
     rate = rospy.Rate(1/h)
 
-    create_wpList()
+    #create_wpList()
 
     print(wayPoints)
 

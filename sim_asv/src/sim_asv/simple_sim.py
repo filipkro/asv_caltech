@@ -3,6 +3,7 @@
 import rospy
 from gps_reader.msg import GPS_data
 from motor_control.msg import MotorCommand
+from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Float32, Float32MultiArray
 from nav_msgs.msg import Odometry
 import math
@@ -10,8 +11,6 @@ import numpy as np
 import tf
 
 pub_gps = rospy.Publisher('/GPS/xy_coord', GPS_data, queue_size=10)
-gps_message = GPS_data()
-
 pub_imu = rospy.Publisher('/heading', Float32, queue_size=10)
 pub_adcp = rospy.Publisher('adcp/data', Float32MultiArray, queue_size=10)
 pub_odom = rospy.Publisher('sim/pose', Odometry, queue_size=10)
@@ -22,6 +21,7 @@ y = 0.0
 omega = 0.0
 v = 0.0
 theta = math.pi/2
+gps_message = GPS_data()
 
 
 def angleDiff(angle):
@@ -110,15 +110,29 @@ def update_state(msg):
     gps_message.y_vel = robot_vy
     gps_message.ang_course = ang_course
 
+    # quat = qfe(0,0,theta)
+    # pose.pose.position.x = x
+    # pose.pose.position.y = y
+    # pose.pose.position.z = 0.0
+    # pose.pose.orientation.x = quat[0]
+    # pose.pose.orientation.y = quat[1]
+    # pose.pose.orientation.z = quat[2]
+    # pose.pose.orientation.w = quat[3]
+    # pose.header.frame_id = "/map"
+
     pub_gps.publish(gps_message)
     pub_imu.publish(theta)
     pub_adcp.publish(current)
+    # pub_pose.publish(pose)
 
     print("x: ", x)
     print("y: ", y)
+    print("theta: ", theta)
     print("xvel: ", robot_vx)
     print("yvel: ", robot_vy)
     print("ang_course: ", ang_course)
+    print("current_v", current_v)
+    print("current_ang", current_ang)
 
     # odom message
 
