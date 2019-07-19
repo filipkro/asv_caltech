@@ -29,7 +29,6 @@ def GPS_callb(msg):
 
     vel = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
 
-
 def WP_callb(msg):
     global wayPoints, state_ref
     wayPoints = msg.gps_wp
@@ -88,7 +87,7 @@ def create_wpList():
 
     point = GPS_data()
     list = []
-    point.x = 2.0
+    point.x = 1.0
     point.y = 0.0
     wayPoints.append(point)
 
@@ -98,18 +97,18 @@ def create_wpList():
     wayPoints.append(point)
 
     point = GPS_data()
-    point.x = 7.0
-    point.y = 6.0
+    point.x = 70.0
+    point.y = 60.0
     wayPoints.append(point)
 
     point = GPS_data()
-    point.x = 5.0
-    point.y = 5.0
+    point.x = 50.0
+    point.y = 50.0
     wayPoints.append(point)
 
     point = GPS_data()
-    point.x = 3.0
-    point.y = 2.0
+    point.x = 30.0
+    point.y = 20.0
     wayPoints.append(point)
 
     point = GPS_data()

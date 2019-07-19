@@ -74,6 +74,10 @@
         /rudder/Ti: 10.0
         /vel_threshold: 0.2
         /nav_mode: 'Waypoint'
+        /transect/K_v: 20
+        /transect/K_latAng: 0.5
+        /transect/Kp_turn: 200
+        /transect/speed_ref: 0.5
       </rosparam>
     </node>
 

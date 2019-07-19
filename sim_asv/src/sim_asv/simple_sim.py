@@ -4,21 +4,24 @@ import rospy
 from gps_reader.msg import GPS_data
 from motor_control.msg import MotorCommand
 from std_msgs.msg import Float32, Float32MultiArray
+from nav_msgs.msg import Odometry
 import math
 import numpy as np
+import tf
 
 pub_gps = rospy.Publisher('/GPS/xy_coord', GPS_data, queue_size=10)
 gps_message = GPS_data()
 
 pub_imu = rospy.Publisher('/heading', Float32, queue_size=10)
 pub_adcp = rospy.Publisher('adcp/data', Float32MultiArray, queue_size=10)
+pub_odom = rospy.Publisher('sim/pose', Odometry, queue_size=10)
 
 x = 0.0
 y = 0.0
 
 omega = 0.0
 v = 0.0
-theta = 0.0
+theta = math.pi/2
 
 
 def angleDiff(angle):
@@ -33,20 +36,20 @@ def angleDiff(angle):
 #def update_state(self, state, uR, uL, rudder):
 def update_state(msg):
     ''' for simulation '''
-    global pub_gps, gps_message, pub_imu, x, y, v, omega, theta
+    global pub_gps, gps_message, pub_imu, x, y, v, omega, theta, pub_odom
 
     #uR = -uR/ 100
     #uL = -uL/ 100
 
-    uR = msg.strboard/110.0
-    uL = msg.port/110.0
+    uR = msg.strboard/100.0
+    uL = msg.port/100.0
+
     rudder = msg.servo
 
-    current_v = rospy.get_param('v_current', 0.0)
-    current_ang = rospy.get_param('current_ang', math.pi)
+    current_v = rospy.get_param('v_current', -0.5)
+    current_ang = rospy.get_param('current_ang', math.pi/2)
     current = Float32MultiArray()
     current.data = [current_ang, current_v]
-
 
     # Rudder Angle
     rudder_rate = (1894.0 - 1195.0)/90.0
@@ -81,6 +84,7 @@ def update_state(msg):
 
    # update state
     a = (uR + uL)/m - b_l/m * v
+    print(a)
     ang_acc = -b_r / I_zz * omega  +  (uR + uL) * math.sin(rudder_ang) * x_cg / I_zz
 
     v = v + a * dt
@@ -115,6 +119,24 @@ def update_state(msg):
     print("xvel: ", robot_vx)
     print("yvel: ", robot_vy)
     print("ang_course: ", ang_course)
+
+    # odom message
+
+    odom_msg = Odometry()
+    odom_msg.pose.pose.position.x = x
+    odom_msg.pose.pose.position.y = y
+
+    quat = tf.transformations.quaternion_from_euler(0, 0, theta)
+    odom_msg.pose.pose.orientation.x = quat[0]
+    odom_msg.pose.pose.orientation.y = quat[1]
+    odom_msg.pose.pose.orientation.z = quat[2]
+    odom_msg.pose.pose.orientation.w = quat[3]
+    odom_msg.header.frame_id = 'map'
+    pub_odom.publish(odom_msg)
+
+
+
+
     # print(state.v)
     # print(state.theta)
     # print("x, y:", state.x, state.y)
