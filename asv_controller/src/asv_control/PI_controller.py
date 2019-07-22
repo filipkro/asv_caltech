@@ -69,13 +69,13 @@ def calc_control():
     vel_robot = np.matmul(rot, vel_unrot)
 
     ####### Changes to speed to target ############### ##NOT WORKING
-    v = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
-    ang_offset = math.atan2(state_ref[1] - state_asv[1], state_ref[0] - state_asv[0])
-    vel_2_target_x = v* math.cos(angleDiff(v_asv[2] - ang_offset))
-    vel_2_target_y = v* math.sin(angleDiff(v_asv[2] - ang_offset))
-    vel_2_target = np.matrix([[ v* math.cos(angleDiff(v_asv[2] - ang_offset))], \
-                                [v* math.sin(angleDiff(v_asv[2] - ang_offset)) ]])
-    vel_robot = vel_2_target
+    # v = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
+    # ang_offset = math.atan2(state_ref[1] - state_asv[1], state_ref[0] - state_asv[0])
+    # vel_2_target_x = v* math.cos(angleDiff(v_asv[2] - ang_offset))
+    # vel_2_target_y = v* math.sin(angleDiff(v_asv[2] - ang_offset))
+    # vel_2_target = np.matrix([[ v* math.cos(angleDiff(v_asv[2] - ang_offset))], \
+    #                             [v* math.sin(angleDiff(v_asv[2] - ang_offset)) ]])
+    # vel_robot = vel_2_target
     # print(vel_robot)
     ##################################################
 
@@ -109,18 +109,17 @@ def calc_control():
             '''else use GPS'''
             ang_dir = v_asv[2]
 
-        rospy.logdebug("des ang " + str(des_angle))
-        rospy.logdebug('e_ang ' + str(e_ang))
-
         if abs(angleDiff(des_angle - current[0])) < math.pi/2 and current[1] > 0.1:
             '''if goal point is downstream go towards it by floating with current'''
             e_ang = angleDiff(math.pi - des_angle + ang_dir)
             v_ref = -v_ref/2
+            print(e_ang)
         else:
             e_ang = angleDiff(des_angle - ang_dir)
 
         if abs(angleDiff(current[0] - state_asv[2])) < 0.05 and abs(current[1] - v_ref) < 0.1:
             v_ref -= 0.5
+        
 
     e_v = v_ref - vel_robot[0,0]
     rospy.logdebug("e_v " + str(e_v))
