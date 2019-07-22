@@ -63,9 +63,6 @@ def update_cmd(port, starboard, servo):
         print('Port, Starboard, Servo', port, starboard, servo)
     else:
         servo_command = servo
-
-	print(port, starboard, servo)    
-
         # convert from rpm to rad/s
         port = -port/ 60 * 2* math.pi
         port_command.mode = 2
@@ -75,11 +72,11 @@ def update_cmd(port, starboard, servo):
         star_command.mode = 2
         star_command.setpoint = starboard
 
-
         # port_command = '!G 1 %d' % port
         # starboard_command = '!G 1 %d' % starboard
         # port_ser.write(port_command.encode() + b'\r\n')
         # strboard_ser.write(starboard_command + b'\r\n')
+        
 def imu_callback(msg):
     offet = float(rospy.get_param('/motor_control/compass_offset'))
     theta = angleDiff(msg.data[8] - 109.0/180.0 * math.pi)
