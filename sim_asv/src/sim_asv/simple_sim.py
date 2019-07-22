@@ -46,7 +46,7 @@ def update_state(msg):
 
     rudder = msg.servo
 
-    current_v = rospy.get_param('v_current', -0.5)
+    current_v = rospy.get_param('v_current', 0.5)
     current_ang = rospy.get_param('current_ang', math.pi/2)
     current = Float32MultiArray()
     current.data = [current_ang, current_v]

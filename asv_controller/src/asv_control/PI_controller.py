@@ -68,6 +68,18 @@ def calc_control():
     vel_unrot = np.array([[v_asv[0]],[v_asv[1]]])
     vel_robot = np.matmul(rot, vel_unrot)
 
+    ####### Changes to speed to target ############### ##NOT WORKING
+    v = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
+    ang_offset = math.atan2(state_ref[1] - state_asv[1], state_ref[0] - state_asv[0])
+    vel_2_target_x = v* math.cos(angleDiff(v_asv[2] - ang_offset))
+    vel_2_target_y = v* math.sin(angleDiff(v_asv[2] - ang_offset))
+    vel_2_target = np.matrix([[ v* math.cos(angleDiff(v_asv[2] - ang_offset))], \
+                                [v* math.sin(angleDiff(v_asv[2] - ang_offset)) ]])
+    vel_robot = vel_2_target
+    # print(vel_robot)
+    ##################################################
+
+
     '''evaluate rotation of robot compared to current'''
     e_heading = angleDiff(current[0] + math.pi - state_asv[2])
 
@@ -99,6 +111,7 @@ def calc_control():
 
         e_ang = angleDiff(des_angle - ang_dir)
         rospy.logdebug("des ang " + str(des_angle))
+        rospy.logdebug('e_ang ' + str(e_ang))
 
         #fix this to be if the difference between current angle and des_angle instead
         if abs(e_ang) > math.pi/2 and current[1] > 0.1:
@@ -107,14 +120,16 @@ def calc_control():
             v_ref = -v_ref/2
 
     e_v = v_ref - vel_robot[0,0]
+    rospy.logdebug("e_v " + str(e_v))
     u_rudder = rudder_control(e_ang)
     u_thrust = thrust_control(e_v)
-    # maybe don't need this
-    # point = wayPoints[target_index]
-    # x_ref = point.x
-    # y_ref = point.y
 
+    ### extension for using velocity to target
+    # check which direction we're point at #
+    # des_angle = math.atan2(state_ref[1] - state_asv[1], state_ref[0] - state_asv[0])
 
+    # if ( abs(state_asv[2] - des_angle) > math.pi/2):
+    #     u_rudder = u_rudder * -1
 
     return u_thrust, u_rudder
 
