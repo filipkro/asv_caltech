@@ -97,14 +97,17 @@ def calc_control():
             '''else use GPS'''
             ang_dir = v_asv[2]
 
-        e_ang = angleDiff(des_angle - ang_dir)
         rospy.logdebug("des ang " + str(des_angle))
 
-        #fix this to be if the difference between current angle and des_angle instead
-        if abs(e_ang) > math.pi/2 and current[1] > 0.1:
+        if abs(angleDiff(des_angle - current[0])) < math.pi/2 and current[1] > 0.1:
             '''if goal point is downstream go towards it by floating with current'''
-            e_ang = angleDiff(math.pi - des_angle - ang_dir)
+            e_ang = angleDiff(math.pi - des_angle + ang_dir)
             v_ref = -v_ref/2
+        else:
+            e_ang = angleDiff(des_angle - ang_dir)
+
+        if abs(angleDiff(current[0] - state_asv[2])) < 0.05 and abs(current[1] - v_ref) < 0.1:
+            v_ref += 0.5
 
     e_v = v_ref - vel_robot[0,0]
     u_rudder = rudder_control(e_ang)
