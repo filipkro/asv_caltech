@@ -3,7 +3,7 @@
 	<!-- Motor command distributor -->
     <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
         <param name="sim" value="False"/>
-        <param name='compass_offset' value='109.0'>
+        <param name='compass_offset' value='109.0'/>
     </node>
 
     <!-- Arduino + Servo + IMU -->

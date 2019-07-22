@@ -82,7 +82,7 @@ def update_cmd(port, starboard, servo):
         # strboard_ser.write(starboard_command + b'\r\n')
 def imu_callback(msg):
     offet = float(rospy.get_param('/motor_control/compass_offset'))
-    theta = angleDiff(msg.data - 109.0/180.0 * math.pi)
+    theta = angleDiff(msg.data[8] - 109.0/180.0 * math.pi)
     heading_pub.publish(theta)
 
 def test_callback(msg):
