@@ -32,11 +32,12 @@ def GPS_callb(msg):
     vel = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
 
 def WP_callb(msg):
-    global wayPoints, state_ref
+    global wayPoints, state_ref, target_index
     wayPoints = msg.gps_wp
     rospy.loginfo(wayPoints)
     state_ref[0] = wayPoints[0].x
     state_ref[1] = wayPoints[1].y
+    target_index = 0
 
 def IMU_callb(msg):
     global state_asv
