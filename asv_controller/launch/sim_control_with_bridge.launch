@@ -15,7 +15,7 @@
       <rosparam>
         /run: False
         /v_ref: 0.5
-        /thrust/K: 20.0
+        /thrust/K: 500.0 
         /thrust/Ti: 1.0
         /rudder/K: 1000.0
         /rudder/Ti: 10.0
@@ -29,8 +29,10 @@
     </node>
 
     <node pkg="sim_asv" name="sim_asv" type="sim_node.py" output="screen">
-        <param name="v_current" value='0.5'/>
-        <param name='current_ang' value='0.0'/>
+      <rosparam>
+        /v_current: 0.5
+        /current_ang: 0.0
+      </rosparam>
     </node>
 
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
