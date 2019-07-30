@@ -38,8 +38,8 @@ def setup_adcp():
     print("Angle offset message: ", s)
 
     time_stamp = datetime.datetime.now().replace(microsecond=0).strftime('%y-%m-%d %H.%M.%S')
-    #adcp_filename = '/media/ubuntu/8B07-2EE0/ADCP' + time_stamp + ".bin"
-    #adcp_f = open(adcp_filename, 'wb')
+    adcp_filename = '/home/filip/Documents/SURF/asv_ws/src/bagfiles' + time_stamp + ".bin"
+    adcp_f = open(adcp_filename, 'wb')
 
 def send_ADCP(command):
     '''send a command to adcp and return the response'''
@@ -108,7 +108,7 @@ def read_ensemble(verbose=False):
 
     #read data to file
     all_data = b'\x7f\x7f' + num_bytes + data + checksum
-    #adcp_f.write(all_data)
+    adcp_f.write(all_data)
 
     # current_state = [self.state_est.x, self.state_est.y, self.state_est.theta, self.state_est.roll, self.state_est.pitch, self.state_est.v_course, self.state_est.ang_course]
     # current_state_str = "$STATE," + ",".join(map(str,current_state)) + "###"
@@ -180,7 +180,7 @@ def extract_data(all_data):
         # Average over beams
         vel = []
         for j in range(int(num_beams.encode('hex'),16)):
-            curVel = int(''.join(reversed(all_data[start_offset + 2*j : start_offset + 2 + 2*j])).encode('hex'),16)
+            curVel = s16(int(''.join(reversed(all_data[start_offset + 2*j : start_offset + 2 + 2*j])).encode('hex'),16))
             # curVel = int.from_bytes(all_data[start_offset + 2*j: start_offset + 2 + 2*j], byteorder='little', signed=True)
             vel.append(curVel)
         relative_velocities.append(vel)
@@ -205,7 +205,7 @@ def extract_data(all_data):
 
     for i in range(4):
         bt_ranges.append(int(''.join(reversed(all_data[bt_offset+16+i*2:bt_offset+18+i*2])).encode('hex'),16))
-        bt_velocities.append(int(''.join(reversed(all_data[bt_offset+24+i*2:bt_offset+26+i*2])).encode('hex'),16))
+        bt_velocities.append(s16(int(''.join(reversed(all_data[bt_offset+24+i*2:bt_offset+26+i*2])).encode('hex'),16)))
         beam_percent_good.append(all_data[bt_offset+40+i])
     
     # VERTICAL BEAM RANGE
