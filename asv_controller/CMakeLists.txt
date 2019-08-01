@@ -10,7 +10,9 @@ project(asv_controller)
 find_package(catkin REQUIRED
   rospy
   std_msgs
-  message_generation)
+  message_generation
+  nmea_navsat_driver
+  rosserial_python)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

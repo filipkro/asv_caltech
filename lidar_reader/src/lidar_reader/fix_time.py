@@ -8,6 +8,7 @@ pub_imu = rospy.Publisher('os1/imu', Imu, queue_size=10)
 
 def pc_callb(msg):
     msg.header.stamp = rospy.get_rostime()
+    msg.header.frame_id = 'os1_lidar'
     pub_PC.publish(msg)
 
 def imu_callb(msg):
