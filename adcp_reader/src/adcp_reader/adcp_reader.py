@@ -164,7 +164,7 @@ def extract_data(all_data):
     variable_offset = offsets[1]
 
     transducer_depth = int(''.join(reversed(all_data[variable_offset+14:variable_offset+16])).encode('hex'),16) #1 dm
-    heading = int(''.join(reversed(all_data[variable_offset+18:variable_offset+20])).encode('hex'),16) # degree
+    heading = s16(int(''.join(reversed(all_data[variable_offset+18:variable_offset+20])).encode('hex'),16)) # degree
     pitch = s16(int(''.join(reversed(all_data[variable_offset+22:variable_offset+24])).encode('hex'),16)) # degree
     roll = s16(int(''.join(reversed(all_data[variable_offset+20:variable_offset+22])).encode('hex'),16)) # degree
     salinity = int(''.join(reversed(all_data[variable_offset+24:variable_offset+26])).encode('hex'),16) # 0 to 40 ppm
@@ -180,7 +180,7 @@ def extract_data(all_data):
         # Average over beams
         vel = []
         for j in range(int(num_beams.encode('hex'),16)):
-            curVel = int(''.join(reversed(all_data[start_offset + 2*j : start_offset + 2 + 2*j])).encode('hex'),16)
+            curVel = s16(int(''.join(reversed(all_data[start_offset + 2*j : start_offset + 2 + 2*j])).encode('hex'),16))
             # curVel = int.from_bytes(all_data[start_offset + 2*j: start_offset + 2 + 2*j], byteorder='little', signed=True)
             vel.append(curVel)
         relative_velocities.append(vel)
@@ -205,7 +205,7 @@ def extract_data(all_data):
 
     for i in range(4):
         bt_ranges.append(int(''.join(reversed(all_data[bt_offset+16+i*2:bt_offset+18+i*2])).encode('hex'),16))
-        bt_velocities.append(int(''.join(reversed(all_data[bt_offset+24+i*2:bt_offset+26+i*2])).encode('hex'),16))
+        bt_velocities.append(s16(int(''.join(reversed(all_data[bt_offset+24+i*2:bt_offset+26+i*2])).encode('hex'),16)))
         beam_percent_good.append(all_data[bt_offset+40+i])
     
     # VERTICAL BEAM RANGE
