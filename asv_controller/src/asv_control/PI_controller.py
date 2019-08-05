@@ -119,7 +119,7 @@ def calc_control():
 
         if abs(angleDiff(current[0] - state_asv[2])) < 0.05 and abs(current[1] - v_ref) < 0.1:
             v_ref -= 0.5
-        
+
 
     e_v = v_ref - vel_robot[0,0]
     rospy.logdebug("e_v " + str(e_v))

@@ -100,8 +100,10 @@ def update_state(msg):
     omega = min(max(omega, -1.0), 1.0)
 
     # update position
-    x = x + v*math.cos(angleDiff(theta)) * dt + current_v * math.cos(angleDiff(current_ang)) * dt
-    y = y + v*math.sin(angleDiff(theta)) * dt + current_v * math.sin(angleDiff(current_ang))* dt
+    # x = x + v*math.cos(angleDiff(theta)) * dt + current_v * math.cos(angleDiff(current_ang)) * dt
+    # y = y + v*math.sin(angleDiff(theta)) * dt + current_v * math.sin(angleDiff(current_ang))* dt
+    x = x + robot_vx * dt
+    y = y + robot_vy * dt
     theta = angleDiff(theta + omega * dt)
 
     gps_message.x = x
