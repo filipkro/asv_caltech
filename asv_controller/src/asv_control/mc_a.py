@@ -24,6 +24,7 @@ ADCP_mean = [0.0, 0.0, 0.0] # for means of ADCP angle, [sum, cnt, mean]
 ranges = []
 STATE = ''
 lidar_inc = 0.0
+transect_cnt = 0 # number of transects made
 
 def GPS_callb(msg):
     global state_asv, v_asv
@@ -84,7 +85,7 @@ def s16(value):
 
 def lidar_callb(msg):
     global ranges, lidar_inc
-    ranges = msg.ranges
+    ranges = np.array(msg.ranges)
     lidar_inc = msg.angle_increment
     
 
@@ -279,7 +280,7 @@ def get_distance(ang, nbr_of_points):
 def to_close(dir):
     global state_asv, wayPoints, ranges
     inc = 2*math.pi/len(ranges)
-    dist_th = rospy.get_param('dist_th')
+    dist_th = rospy.get_param('dist_th', 2.0)
     theta_p = np.arctan2(wayPoints[0].y - wayPoints[1].y, wayPoints[0].x - wayPoints[1].x)
 
     if dir:
@@ -374,10 +375,10 @@ def hold():
 
 def transect():
     global state_asv, state_ref, v_asv, target_index, wayPoints, current, \
-        STATE, ADCP_mean, direction
+        STATE, ADCP_mean, direction, transect_cnt
     state_pub.publish(STATE)
-    run_time = rospy.get_param('/run_time', inf)
-    max_transect = rospy.get_param('/max_runtime', inf)
+    run_time = rospy.get_param('/run_time', float('inf'))
+    max_transect = rospy.get_param('/max_runtime', float('inf'))
     state_pub.publish(STATE)
     if to_close(direction):
         transect_cnt += 1
@@ -386,7 +387,7 @@ def transect():
     if transect_cnt == 2:
         wayPoints = calculate_transect(ADCP_mean[2])
 
-    if rospy.get_rostime() - start_time > run_time or transect_cnt > max_transect:
+    if (rospy.get_rostime() - start_time).to_sec() > run_time or transect_cnt > max_transect:
         STATE = 'HOME'
     else:
         controller
