@@ -13,6 +13,7 @@ from sklearn import linear_model
 
 
 bag = rosbag.Bag('/home/filip/Documents/SURF/asv_ws/src/bagfiles/Test/Test_2019-08-01-10-51-19.bag')
+# bag = rosbag.Bag('/home/filip/Documents/SURF/asv_ws/src/bagfiles/Test/2019-08-02-09-27-41.bag')
 rospy.init_node('data_processing_node')
 listener = tf.TransformListener()
 got_transform = False
@@ -23,9 +24,10 @@ x = np.zeros([])
 y = np.zeros([])
 
 for topic, msg, t in bag.read_messages(topics=['/os1/scan']):
-
+# for topic, msg, t in bag.read_messages(topics=['/scan']):
 
     if topic == '/os1/scan':
+    # if topic == '/scan':
         print('we here')
         angle_min = msg.angle_min
         angle_max = msg.angle_max
@@ -40,19 +42,17 @@ for topic, msg, t in bag.read_messages(topics=['/os1/scan']):
             y[i] = msg.ranges[i] * math.sin(angle)
 
         # remove inf values
-        x = x[np.logical_and(x!=np.inf, x!=-np.inf)]
-        y = y[np.logical_and(y!=np.inf, y!=-np.inf)]
+        # x = x[np.logical_and(x!=np.inf, x!=-np.inf)]
+        # y = y[np.logical_and(y!=np.inf, y!=-np.inf)]
+        x = x[np.logical_and(x!=151.0, x!=-151.0)]
+        y = y[np.logical_and(y!=151.0, y!=-151.0)]
         order= np.argsort(x) # sort it, scipy requires strictly ascending order
 
         # https://stackoverflow.com/questions/45179024/scipy-bspline-fitting-in-python
-        t, c, k= interpolate.splrep(x[order], y[order], s=100, k=1)
+        # t, c, k= interpolate.splrep(x[order], y[order], s=100, k=1)
         # spline = interpolate.BSpline(t, c, k, extrapolate=False)
 
-
-        N = 100
-        xmin, xmax = x.min(), x.max()
-        xx = np.linspace(xmin, xmax, N)
-
+        # Robustly fit linear model with RANSAC algorithm
         ransac = linear_model.RANSACRegressor()
         x.shape = (x.size, 1)
         y.shape = (y.size, 1)
@@ -67,14 +67,18 @@ for topic, msg, t in bag.read_messages(topics=['/os1/scan']):
         print('Huber', huber.coef_)
 
 
-
+        N = 100
+        xmin, xmax = x.min(), x.max()
+        xx = np.linspace(xmin, xmax, N)
         xx.shape = (xx.size, 1)
         y_ransac = ransac.predict(xx)
+        y_huber = huber.predict(xx)
 
         plt.clf()
-        plt.axis([-50, 50, -50, 100])
+        plt.axis([-100, 300, -100, 100])
         plt.plot(x, y, 'bo', label='Original points')
-        plt.plot(xx, y_ransac, 'r', label='BSpline')
+        plt.plot(xx, y_ransac, 'r', label='RANSAC')
+        plt.plot(xx, y_huber, 'g', label='Huber')
         plt.pause(0.05)
 
 plt.show()
