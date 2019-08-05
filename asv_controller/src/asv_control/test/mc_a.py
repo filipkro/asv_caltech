@@ -3,13 +3,11 @@
 import rospy
 import PI_controller
 import transect_controller
-import math
-import numpy as np
 from gps_reader.msg import GPS_data, GPS_WayPoints
 from motor_control.msg import MotorCommand
 from geometry_msgs.msg import PointStamped, PoseStamped
-from std_msgs.msg import Float32, Float32MultiArray, String, Int64MultiArray
-from sensor_msgs.msg import LaserScan
+from std_msgs.msg import Float32, Float32MultiArray, String
+import math
 from visualization_msgs.msg import Marker, MarkerArray # for simulation
 
 state_asv = [0.0, 0.0, 0.0] # x, y, theta
@@ -21,9 +19,6 @@ target_index = 0 # index of target way point in the wayPoints
 h = 0.2
 ADCP_mean = [0.0, 0.0, 0.0] # for means of ADCP angle, [sum, cnt, mean]
 ranges = []
-STATE = ''
-lidar_inc = 0.0
-transect_cnt = 0 # number of transects made
 
 def GPS_callb(msg):
     global state_asv, v_asv
@@ -55,77 +50,22 @@ def IMU_callb(msg):
     and not relative to boat'''
 def ADCP_callb(msg):
     global current, ADCP_mean
-    data = msg.data
+    current = msg.data
     calc_mean = rospy.get_param('ADCP/mean', False)
-
-    v_bt = np.array([s16(v) for v in data[7:11]]) # bottom track velocity (v of boat?)
-    v_rel_surface = np.array([s16(v) for v in data[11:15]]) # relative surface velocity
-    v_surface = v_rel_surface - v_bt
-    v_angle = math.atan2(v_surface[1], v_surface[0])
-
-    adcp_offset = rospy.get_param('/ADCP/angleOff', 135)
-    v_angle = angleDiff(v_angle+adcp_offset)
-
     if calc_mean:
         if rospy.get_param('/ADCP/reset', False):
-            ADCP_mean = [0.0, 0.0, 0.0] # [sum of average, num_samples, mean]
+            ADCP_mean = [0.0, 0.0, 0.0]
             rospy.set_param('/ADCP/reset', False)
 
-        ADCP_mean[0] += v_angle
+        ADCP_mean[0] += current[1]
         ADCP_mean[1] += 1
         ADCP_mean[2] = ADCP_mean[0]/ADCP_mean[1]
-    else:
-        ADCP_mean[2] = v_angle
-
-def s16(value):
-    ''' convert unsigned integer to signed integer'''
-    return -(value & 0x8000) | (value & 0x7fff)
 
 
 def lidar_callb(msg):
-    global ranges, lidar_inc
-    ranges = np.array(msg.ranges)
-    lidar_inc = msg.angle_increment
+    global ranges
+    ranges = msg.ranges
 
-
-def updateTarget():
-    '''Update target way point based on current position
-        return True when there's still point to navigate
-        '''
-    global target_index
-    dist_2_target = math.sqrt( (state_asv[0] - state_ref[0])**2
-        + (state_asv[1] - state_ref[1])**2 )
-
-    DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
-    if (dist_2_target <= DIST_THRESHOLD):
-        if rospy.get_param('/nav_mode') == 'Waypoint':
-            # for way points, simply iterate through the points and stop
-            if (target_index < len(wayPoints)-1):
-                target_index += 1
-                state_ref[0] = wayPoints[target_index].x
-                state_ref[1] = wayPoints[target_index].y
-                return True
-            else:
-                rospy.loginfo('Destination reached')
-                return False
-        elif rospy.get_param('/nav_mode') == 'Transect':
-            # for transect, just repeat. Only take first two points
-            if (target_index == 0):
-                target_index = 1
-                state_ref[0] = wayPoints[target_index].x
-                state_ref[1] = wayPoints[target_index].y
-                return True
-            else:
-                target_index = 0
-                state_ref[0] = wayPoints[target_index].x
-                state_ref[1] = wayPoints[target_index].y
-                return True
-        else:
-            # don't run if we don't know what controller it is
-            return False
-
-    else:
-        return True
 
 
 def navGoal_callb(msg):
@@ -147,57 +87,6 @@ def switchControl():
     else:
         return PI_controller
 
-<<<<<<< HEAD:asv_controller/src/asv_control/test/mc_a.py
-=======
-def main():
-    global wayPoints, h, vref, current
-    rospy.init_node('master_controller')
-
-    # information update subscriber
-    rospy.Subscriber('GPS/xy_coord', GPS_data, GPS_callb)
-    rospy.Subscriber('heading', Float32, IMU_callb)
-    rospy.Subscriber('ControlCenter/gps_wp', GPS_WayPoints, WP_callb)
-    rospy.Subscriber('adcp/data', Float32MultiArray, ADCP_callb) # needs fixing for real thing
-    rospy.Subscriber('move_base_simple/goal', PoseStamped, navGoal_callb)
-
-    # publish to motor controller
-    motor_cmd = MotorCommand()
-    ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', \
-                            MotorCommand, queue_size=1)
-
-    rate = rospy.Rate(1/h)
-#    create_wpList()
-    # print(wayPoints)
-
-    while not rospy.is_shutdown():
-        # Master control param
-            # /run: to run or not to run
-            # /control_type: WayPoint, Transect, or something else?
-        run = rospy.get_param('/run', False)
-        state_ref[0] = rospy.get_param('/start_x')
-        state_ref[1] = rospy.get_param('/start_y')
-        controller = switchControl()
-        rospy.logdebug('Target Index '+ str(target_index))
-        trgt_updated = updateTarget()
-        if run or trgt_updated:
-            controller.destinationReached(not trgt_updated)
-            controller.update_variable(state_asv, state_ref, v_asv, \
-                                    target_index, wayPoints, current)
-            u_thrust, u_rudder = controller.calc_control()
-            motor_cmd.port = u_thrust
-            motor_cmd.strboard = u_thrust
-            motor_cmd.servo = u_rudder
-        else:
-            controller.destinationReached(not trgt_updated)
-            u_thrust, u_rudder = controller.calc_control()
-            motor_cmd.port = u_thrust
-            motor_cmd.strboard = u_thrust
-            motor_cmd.servo = u_rudder
-
-        rospy.logdebug('MotorCmd ' + str(motor_cmd))
-        ctrl_pub.publish(motor_cmd)
-
-        rate.sleep()
 
 # STATE:
 # START - goto start point
@@ -209,31 +98,29 @@ def main():
 
 ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
 state_pub = rospy.Publisher('controller/STATE', String, queue_size=1)
+STATE = 'none'
 start_time = 0.0
 direction = True #true - look at shore to the right, false - look at shore to the left
 transect_cnt = 0
 home_coord = []
 
 def main():
-    global wayPoints, h, current, STATE, home_coord
+    global samp_time, wayPoints, h, current, STATE, home_coord
     rospy.init_node('master_controller')
 
     # information update subscriber
     rospy.Subscriber('GPS/xy_coord', GPS_data, GPS_callb)
     rospy.Subscriber('heading', Float32, IMU_callb)
     rospy.Subscriber('ControlCenter/gps_wp', GPS_WayPoints, WP_callb)
-    rospy.Subscriber('adcp/data', Int64MultiArray, ADCP_callb) # needs fixing for real thing
+    rospy.Subscriber('adcp/data', Float32MultiArray, ADCP_callb) # needs fixing for real thing
     rospy.Subscriber('move_base_simple/goal', PoseStamped, navGoal_callb)
-    rospy.Subscriber('/os1/scan', LaserScan, lidar_callb)
 
     rate = rospy.Rate(1/h)
 
-    STATE = 'START'
+    STATE = START
     home_coord = [state_asv[0], state_asv[1]]
 
-
     while not rospy.is_shutdown():
-        print(STATE)
         if STATE == 'START':
             start()
         elif STATE == 'HOLD':
@@ -255,29 +142,25 @@ def destinationReached():
     dist = math.sqrt((state_ref[0] - state_asv[0])**2 + (state_ref[1] - state_asv[1])**2)
     return dist < DIST_THRESHOLD
 
-
-def get_distance(ang, nbr_of_points=5):
-    '''Getting the mean distance to the specified angle
-        ang: angle to look for shortest range
-        nbr_of_points: number of readings to average over'''
-    global state_asv, ranges, lidar_inc
-    nbr = int(math.floor(nbr_of_points/2))
-    inc = lidar_inc
-    print(ang)
+#returns distance to specified angle (global frame), returns mean value of specified number of points
+def get_distance(ang, nbr_of_points=9):
+    global state_asv, ranges
+    nbr = math.floor(nbr_of_points/2)
+    inc = 2*math.pi/len(ranges)
     index = int((state_asv[2] - ang + math.pi)/inc)
-    range_sum = ranges[index]
+    sum = ranges[index]
     for i in range(1,nbr+1):
-        range_sum += math.cos(inc*i)*(ranges[index+i] + ranges[index-i])
+        sum += math.cos(inc*i)*(ranges[index+i] + ranges[index-i])
 
     # return mean of nbr_of_points (uneven) closest points
-    return range_sum/(2*nbr+1)
+    return sum/(2*nbr+1)
 
 # Compares distance to shore on either right or left side to the threshold.
 # If the number of points exceeds some number, turn around
 def to_close(dir):
     global state_asv, wayPoints, ranges
     inc = 2*math.pi/len(ranges)
-    dist_th = rospy.get_param('dist_th', 2.0)
+    dist_th = rospy.get_param('dist_th')
     theta_p = np.arctan2(wayPoints[0].y - wayPoints[1].y, wayPoints[0].x - wayPoints[1].x)
 
     #Look at an angle of pi/4 above and below transect point
@@ -314,18 +197,11 @@ def publish_cmds(controller):
 
 #Calculates two transect points (on land) creating a line perpendicular to current
 def calculate_transect(theta_c):
-    '''Input:
-         theta_c: current angle (float) in global frame
-       Output:
-         [state, state]: two points on the line normal to theta_c '''
     global state_asv
     point1 = GPS_data()
     point2 = GPS_data()
-# sample cerain number of points from the sides of the current angle
     distL = get_distance(theta_c + math.pi/2, 21)
     distR = get_distance(theta_c - math.pi/2, 21)
-
-    # generate points using simple trig
     point1.x = state_asv[0] + (distR + 10) * math.cos(theta_c - math.pi/2)
     point1.y = state_asv[1] + (distR + 10) * math.sin(theta_c - math.pi/2)
     point2.x = state_asv[0] + (distL + 10) * math.cos(theta_c + math.pi/2)
@@ -338,36 +214,30 @@ def calculate_transect(theta_c):
 #add destReached to update variable ?
 #navigates to user specified start point, when there start ADCP mean calculations
 def start():
-    '''Simple navigation to the first destination point'''
-    global start_time, state_asv, state_ref, v_asv, \
-            STATE, target_index, wayPoints, current
+    global start_time, state_asv, state_ref, v_asv, target_index, wayPoints, current
     state_pub.publish(STATE)
-    state_ref[0] = rospy.get_param('/start_x', 0.0)
-    state_ref[1] = rospy.get_param('/start_y', 0.0)
+    state_ref[0] = rospy.get_param('/start_x')
+    state_ref[1] = rospy.get_param('/start_y')
     destReached = destinationReached()
     PI_controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
-    PI_controller.destinationReached(destReached)
+    PI_controller.destReached(destReached)
     publish_cmds(PI_controller)
     if destReached:
         STATE = 'HOLD'
         start_time = rospy.get_rostime()
-        rospy.set_param('/ADCP/reset', True)
         rospy.set_param('/ADCP/mean', True)
+        rospy.set_param('/ADCP/reset', True)
 
 #Hold position for specified time, to measure mean angle of current, after specified time
 #calculate transect based on it
 def hold():
-    '''Holding at the line to get a reliable reading on current angle'''
-    global start_time, state_asv, state_ref, v_asv, target_index, wayPoints, \
-            STATE, current, ADCP_mean, direction, ranges
+    global start_time, state_asv, state_ref, v_asv, target_index, wayPoints, current, ADCP_mean, direction
     state_pub.publish(STATE)
     waitTime = rospy.get_param('/wait_time', 5.0)
     PI_controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
-    PI_controller.destinationReached(True)
+    PI_controller.destReached(True)
     publish_cmds(PI_controller)
-
-    if (rospy.get_rostime() - start_time).to_sec() > waitTime and len(ranges) != 0:
-        #calculate two points on the line normal to the water current
+    if rospy.get_rostime - start_time > waitTime:
         wayPoints = calculate_transect(ADCP_mean[2])
 
         STATE = 'TRANSECT'
@@ -377,11 +247,10 @@ def hold():
 #Make transect, after first completed transect (back and forth) calculate new transect based on new mean current
 #continue for specified time or number of transects
 def transect():
-    global state_asv, state_ref, v_asv, target_index, wayPoints, current, \
-        STATE, ADCP_mean, direction, transect_cnt
+    global state_asv, state_ref, v_asv, target_index, wayPoints, current, ADCP_mean, direction
     state_pub.publish(STATE)
-    run_time = rospy.get_param('/run_time', float('inf'))
-    max_transect = rospy.get_param('/max_runtime', float('inf'))
+    run_time = rospy.get_param('/run_time', inf)
+    max_transect = rospy.get_param('/max_runtime', inf)
     state_pub.publish(STATE)
     if to_close(direction):
         transect_cnt += 1
@@ -390,7 +259,7 @@ def transect():
     if transect_cnt == 2:
         wayPoints = calculate_transect(ADCP_mean[2])
 
-    if (rospy.get_rostime() - start_time).to_sec() > run_time or transect_cnt > max_transect:
+    if rospy.get_rostime() - start_time > run_time or transect_cnt > max_transect:
         STATE = 'HOME'
     else:
         controller
@@ -407,11 +276,9 @@ def home():
     #if dir_home = 'down':
     if (math.pi/4 <= abs(theta_h) <= 3*math.pi/4) and ((home_coord[0] - state_asv[0])**2 + (home_coord[1] - state_asv[1])**2) > 2*dist_shore:
     #measure distance to shore, keep desired distance
-
         #how to keep track of orientation of shore?? Now assumes it is parallel to current
         ang = current[1] - 2*math.pi/3 #if downstream
         distance = get_distance(ang, 21)
-
         '''transform nav_points from robot's to global coordinate system'''
         rot = np.array([[np.cos(state_asv[2]), -np.sin(state_asv[2])], \
             [np.sin(state_asv[2]), np.cos(state_asv[2])]])
@@ -427,14 +294,3 @@ def home():
 
     PI_controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
     publish_cmds(PI_controller)
-
-def angleDiff(angle):
-    while(angle > math.pi):
-        angle = angle - math.pi * 2
-    while (angle < -math.pi):
-        angle = angle + math.pi * 2
-    return angle
-
-## for quick test purposes, remove when use this in a node
-if __name__ == "__main__":
-    main()
