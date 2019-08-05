@@ -85,18 +85,18 @@ def calc_control():
 
 
     if abs(e_heading) > math.pi/3 and current[1] > 0.1:
-        print('FORSTA')
-        print(e_heading)
+        #print('FORSTA')
+        #print(e_heading)
         '''turn robot back towards current if it points to much downward'''
         e_ang = e_heading
     elif destReached:
-        print('ANDRA')
+        #print('ANDRA')
         '''if completed turn boat towards current, keep velocity at 0.0
             reason not to have this if statement first is thrust is needed to rotate boat'''
         e_ang = e_heading
         v_ref = 0.0
     else:
-        print('TREDJE')
+        #print('TREDJE')
         '''desired angle and velocity of robot'''
         des_angle = math.atan2(state_ref[1] - state_asv[1], state_ref[0] - state_asv[0])
         v = math.sqrt(v_asv[0]**2 + v_asv[1]**2)

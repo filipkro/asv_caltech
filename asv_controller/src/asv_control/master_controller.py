@@ -19,6 +19,10 @@ target_index = 0 # index of target way point in the wayPoints
 h = 0.2
 vref = 0.0
 
+########################
+## Callback funcitons ##
+########################
+
 def GPS_callb(msg):
     global state_asv, v_asv
     # position
@@ -88,6 +92,7 @@ def updateTarget():
 
 
 def create_wpList():
+    ''' Dummy waypoint generation '''
     global wayPoints
     pub = rospy.Publisher('wpArray', MarkerArray, queue_size=1)
     markerArray = MarkerArray()
@@ -124,6 +129,7 @@ def create_wpList():
     wayPoints.append(point)
 
 def navGoal_callb(msg):
+    ''' reference state update. Specifically for Rviz'''
     global wayPoints
     point = msg.pose.position
     state_ref[0] = point.x
@@ -134,6 +140,7 @@ def navGoal_callb(msg):
     #print(wayPoints)
 
 def switchControl():
+    '''Choose the right controller'''
     controller_type = rospy.get_param('/nav_mode', 'Waypoint')
     if (controller_type == "Waypoint"):
         return PI_controller
