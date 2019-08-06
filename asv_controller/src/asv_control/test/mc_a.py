@@ -105,7 +105,7 @@ transect_cnt = 0
 home_coord = []
 
 def main():
-    global samp_time, wayPoints, h, current, STATE, home_coord
+    global wayPoints, h, current, STATE, home_coord
     rospy.init_node('master_controller')
 
     # information update subscriber
