@@ -21,7 +21,7 @@ v_asv = [0.0, 0.0, 0.0] # x_ve;, y_vel, ang_course
 wayPoints = [] # list of waypoints
 target_index = 0 # index of target way point in the wayPoints
 
-def update_variable(s_asv, s_ref, v, target_i, wP):
+def update_variable(s_asv, s_ref, v, target_i, wP, curr):
     '''get the update coming from the master '''
     global state_asv, state_ref, v_asv, target_index, wayPoints
     state_asv = s_asv

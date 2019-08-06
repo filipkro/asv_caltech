@@ -147,8 +147,6 @@ def switchControl():
     else:
         return PI_controller
 
-<<<<<<< HEAD:asv_controller/src/asv_control/test/mc_a.py
-=======
 def main():
     global wayPoints, h, vref, current
     rospy.init_node('master_controller')
@@ -263,7 +261,7 @@ def get_distance(ang, nbr_of_points=5):
     global state_asv, ranges, lidar_inc
     nbr = int(math.floor(nbr_of_points/2))
     inc = lidar_inc
-    print(ang)
+
     index = int((state_asv[2] - ang + math.pi)/inc)
     range_sum = ranges[index]
     for i in range(1,nbr+1):
@@ -321,7 +319,7 @@ def calculate_transect(theta_c):
     global state_asv
     point1 = GPS_data()
     point2 = GPS_data()
-# sample cerain number of points from the sides of the current angle
+    # sample cerain number of points from the sides of the current angle
     distL = get_distance(theta_c + math.pi/2, 21)
     distR = get_distance(theta_c - math.pi/2, 21)
 
@@ -369,8 +367,9 @@ def hold():
     if (rospy.get_rostime() - start_time).to_sec() > waitTime and len(ranges) != 0:
         #calculate two points on the line normal to the water current
         wayPoints = calculate_transect(ADCP_mean[2])
-
+        
         STATE = 'TRANSECT'
+        STATE = 'HOLD' # just for testing purposes
         direction = True
         rospy.set_param('/ADCP/reset', True)
 
@@ -380,7 +379,7 @@ def transect():
     global state_asv, state_ref, v_asv, target_index, wayPoints, current, \
         STATE, ADCP_mean, direction, transect_cnt
     state_pub.publish(STATE)
-    run_time = rospy.get_param('/run_time', float('inf'))
+    run_time = rospy.get_param('/run_time', 5)
     max_transect = rospy.get_param('/max_runtime', float('inf'))
     state_pub.publish(STATE)
     if to_close(direction):
@@ -393,7 +392,13 @@ def transect():
     if (rospy.get_rostime() - start_time).to_sec() > run_time or transect_cnt > max_transect:
         STATE = 'HOME'
     else:
-        controller
+        controller = transect_controller
+        if (direction):
+            target_index = 1
+        else:
+            target_index = 0
+        transect_controller.update_variable(state_asv, state_ref, v_asv,
+                            target_index, wayPoints, current)
         # calculate/actuate transect
 
 #go back to home coordinates
@@ -419,10 +424,10 @@ def home():
             [np.sign(math.sin(ang)) * (distance * abs(math.sin(ang)) - dist_shore)]])
         navPoint_global = np.matmul(rot, navPoint_robot)
         state_ref = [state_asv[0] + navPoint_global[0], state_asv[1] + navPoint_global[1]]
-        PI_controller.destReached(False)
+        PI_controller.destinationReached(False)
     else:
         state_ref = [home_coord[0], home_coord[1]]
-        PI_controller.destReached(destinationReached())
+        PI_controller.destinationReached(destinationReached())
         # + set v_ref pretty low
 
     PI_controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
