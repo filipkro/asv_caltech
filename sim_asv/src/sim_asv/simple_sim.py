@@ -105,7 +105,7 @@ def update_lidar():
             else:
                 dx = -10 - x
             r = dx/math.cos(phi)
-            if r < 20:
+            if 0 <= r < 40:
                 ranges.append(r)
             else:
                 ranges.append(100)

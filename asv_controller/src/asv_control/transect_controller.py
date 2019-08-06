@@ -7,7 +7,7 @@ transect_p1 = None
 trnasect_p2 = None
 last_point = None
 K_v = 10 # vertical speed gain, displacement to speed
-K_latAng = 0.5 # lateral speed to angle 
+K_latAng = 0.5 # lateral speed to angle
 Kp_turn = 200 # turning gain for heading control
 v_update_count = 0
 ang_update_count = 0
@@ -49,7 +49,7 @@ def calc_control():
     rospy.logdebug('Point now ' + str(state_ref))
 
 
-    u_rudder = 1515
+    u_rudder = 1600
     v_update_rate = 1
     ang_update_rate = 1
     if v_update_count >= v_update_rate:
