@@ -179,7 +179,7 @@ def switchControl():
 ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
 state_pub = rospy.Publisher('controller/STATE', String, queue_size=1)
 start_time = 0.0
-direction = True #true - look at shore to the right, false - look at shore to the left
+direction = False #true - look at shore to the right, false - look at shore to the left
 transect_cnt = 0
 home_coord = []
 
@@ -304,13 +304,18 @@ def calculate_transect(theta_c):
     point2 = GPS_data()
     # sample cerain number of points from the sides of the current angle
     distL = get_distance(theta_c + math.pi/2, 21)
+    print('distL', distL)
     distR = get_distance(theta_c - math.pi/2, 21)
+    print('distR', distR)
 
     # generate points using simple trig
     point1.x = state_asv[0] + (distR + 10) * math.cos(theta_c - math.pi/2)
     point1.y = state_asv[1] + (distR + 10) * math.sin(theta_c - math.pi/2)
     point2.x = state_asv[0] + (distL + 10) * math.cos(theta_c + math.pi/2)
     point2.y = state_asv[1] + (distL + 10) * math.sin(theta_c + math.pi/2)
+
+    print(point1)
+    print(point2)
 
     #how should the points be saved for transect controller??
     return [point1, point2]
@@ -365,10 +370,11 @@ def transect():
     global state_asv, state_ref, v_asv, target_index, wayPoints, current, \
         STATE, ADCP_mean, direction, transect_cnt
     state_pub.publish(STATE)
-    run_time = rospy.get_param('/run_time', 20)
+    run_time = rospy.get_param('/run_time', 100)
     max_transect = rospy.get_param('/max_runtime', 10)
     state_pub.publish(STATE)
     if to_close(direction):
+        print('toclose')
         transect_cnt += 1
         direction = not direction
 
@@ -385,7 +391,7 @@ def transect():
             target_index = 0
         transect_controller.update_variable(state_asv, state_ref, v_asv,
                             target_index, wayPoints, current)
-        
+        publish_cmds(transect_controller)
         # calculate/actuate transect
 
 #go back to home coordinates
