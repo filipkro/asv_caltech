@@ -84,7 +84,7 @@ def s16(value):
 def lidar_callb(msg):
     global ranges, lidar_inc
     ranges = msg.ranges
-    lidar_inc = msg.angle_increment
+    lidar_inc = 2*math.pi/len(ranges)
 
 
 def updateTarget():
@@ -146,57 +146,6 @@ def switchControl():
     else:
         return PI_controller
 
-<<<<<<< HEAD:asv_controller/src/asv_control/test/mc_a.py
-=======
-def main():
-    global wayPoints, h, vref, current
-    rospy.init_node('master_controller')
-
-    # information update subscriber
-    rospy.Subscriber('GPS/xy_coord', GPS_data, GPS_callb)
-    rospy.Subscriber('heading', Float32, IMU_callb)
-    rospy.Subscriber('ControlCenter/gps_wp', GPS_WayPoints, WP_callb)
-    rospy.Subscriber('adcp/data', Float32MultiArray, ADCP_callb) # needs fixing for real thing
-    rospy.Subscriber('move_base_simple/goal', PoseStamped, navGoal_callb)
-
-    # publish to motor controller
-    motor_cmd = MotorCommand()
-    ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', \
-                            MotorCommand, queue_size=1)
-
-    rate = rospy.Rate(1/h)
-#    create_wpList()
-    # print(wayPoints)
-
-    while not rospy.is_shutdown():
-        # Master control param
-            # /run: to run or not to run
-            # /control_type: WayPoint, Transect, or something else?
-        run = rospy.get_param('/run', False)
-        state_ref[0] = rospy.get_param('/start_x')
-        state_ref[1] = rospy.get_param('/start_y')
-        controller = switchControl()
-        rospy.logdebug('Target Index '+ str(target_index))
-        trgt_updated = updateTarget()
-        if run or trgt_updated:
-            controller.destinationReached(not trgt_updated)
-            controller.update_variable(state_asv, state_ref, v_asv, \
-                                    target_index, wayPoints, current)
-            u_thrust, u_rudder = controller.calc_control()
-            motor_cmd.port = u_thrust
-            motor_cmd.strboard = u_thrust
-            motor_cmd.servo = u_rudder
-        else:
-            controller.destinationReached(not trgt_updated)
-            u_thrust, u_rudder = controller.calc_control()
-            motor_cmd.port = u_thrust
-            motor_cmd.strboard = u_thrust
-            motor_cmd.servo = u_rudder
-
-        rospy.logdebug('MotorCmd ' + str(motor_cmd))
-        ctrl_pub.publish(motor_cmd)
-
-        rate.sleep()
 
 # STATE:
 # START - goto start point
@@ -274,8 +223,8 @@ def get_distance(ang, nbr_of_points=5):
 # Compares distance to shore on either right or left side to the threshold.
 # If the number of points exceeds some number, turn around
 def to_close(dir):
-    global state_asv, wayPoints, ranges
-    inc = 2*math.pi/len(ranges)
+    global state_asv, wayPoints, ranges, lidar_inc
+    inc = lidar_inc
     dist_th = rospy.get_param('dist_th')
     theta_p = np.arctan2(wayPoints[0].y - wayPoints[1].y, wayPoints[0].x - wayPoints[1].x)
 
@@ -294,8 +243,8 @@ def to_close(dir):
 
 #Get shortest distance from lidar in specified interval
 def get_shortest(start_ang, end_ang):
-    global ranges
-    inc = 2*math.pi/len(ranges)
+    global ranges, lidar_inc
+    inc = lidar_inc
     dists = ranges[np.arange(int((start_ang + math.pi)/inc) % len(ranges), int((end_ang + math.pi)/inc) % len(ranges))]
     return np.amin(dists)
 
