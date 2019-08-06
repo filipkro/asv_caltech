@@ -179,7 +179,7 @@ def switchControl():
 ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
 state_pub = rospy.Publisher('controller/STATE', String, queue_size=1)
 start_time = 0.0
-direction = False #true - look at shore to the right, false - look at shore to the left
+direction = True #true - look at shore to the left, false - look at shore to the right
 transect_cnt = 0
 home_coord = []
 
@@ -252,16 +252,27 @@ def to_close(dir):
 
     #Look at an angle of pi/4 above and below transect point
     if dir:
-        start_ang = angleDiff(theta_p - state_asv[2] - math.pi/4)
-        end_ang = angleDiff(theta_p - state_asv[2] + math.pi/4)
+        start_ang = angleDiff(theta_p - math.pi/4)
+        end_ang = angleDiff(theta_p + math.pi/4)
     elif not dir:
-        start_ang = angleDiff(theta_p - state_asv[2] + math.pi - math.pi/4)
-        end_ang = angleDiff(theta_p - state_asv[2] + math.pi + math.pi/4)
+        start_ang = angleDiff(theta_p - math.pi/4) + math.pi
+        end_ang = angleDiff(theta_p + math.pi/4) + math.pi
 
+    print('indxs:')
+    print(int((start_ang + math.pi)/inc) % len(ranges))
+    print(int((end_ang + math.pi)/inc) % len(ranges))
+    print(start_ang)
+    print(end_ang)
     #If more than a specified number of the points in the region specified above are within threshold, turn around
-    dists = ranges[np.arange(int((start_ang + math.pi)/inc) % len(ranges), int((end_ang + math.pi)/inc) % len(ranges))]
+    indx = np.arange(int((start_ang + math.pi)/inc) % len(ranges), int((end_ang + math.pi)/inc) % len(ranges), 1)
+    print(indx)
+    dists = ranges[indx]
+    # print(dists)
     close = np.nonzero(dists < dist_th)
-    return len(close) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
+    # print('dists', dists)
+    # print('close', close)
+    print(len(close[0]))
+    return len(close[0]) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
 
 #Get shortest distance from lidar in specified interval
 def get_shortest(start_ang, end_ang):
@@ -329,7 +340,7 @@ def start():
             STATE, target_index, wayPoints, current
     state_pub.publish(STATE)
     state_ref[0] = rospy.get_param('/start_x', 0.0)
-    state_ref[1] = rospy.get_param('/start_y', 5.0)
+    state_ref[1] = rospy.get_param('/start_y', 2.0)
     destReached = destinationReached()
     PI_controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
     PI_controller.destinationReached(destReached)
@@ -347,7 +358,7 @@ def hold():
     global start_time, state_asv, state_ref, v_asv, target_index, wayPoints, \
             STATE, current, ADCP_mean, direction, ranges
     state_pub.publish(STATE)
-    waitTime = rospy.get_param('/wait_time', 5.0)
+    waitTime = rospy.get_param('/wait_time', 2.0)
     state_ref = state_asv
     PI_controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
     PI_controller.destinationReached(True)
@@ -369,6 +380,7 @@ def hold():
 def transect():
     global state_asv, state_ref, v_asv, target_index, wayPoints, current, \
         STATE, ADCP_mean, direction, transect_cnt
+    print(direction)
     state_pub.publish(STATE)
     run_time = rospy.get_param('/run_time', 100)
     max_transect = rospy.get_param('/max_runtime', 10)
@@ -386,8 +398,10 @@ def transect():
     else:
         controller = transect_controller
         if (direction):
+            print('Left')
             target_index = 1
         else:
+            print('Right')
             target_index = 0
         transect_controller.update_variable(state_asv, state_ref, v_asv,
                             target_index, wayPoints, current)

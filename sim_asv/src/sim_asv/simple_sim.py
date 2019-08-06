@@ -254,11 +254,12 @@ def update_state(msg):
 def main():
     rospy.init_node('sim')
     rospy.Subscriber('motor_controller/motor_cmd_reciever', MotorCommand, update_state)
-#    rospy.spin()
-    rate = rospy.Rate(1.0)
-    while not rospy.is_shutdown():
-        setup_walls()
-        rate.sleep()
+    setup_walls()
+    rospy.spin()
+    # rate = rospy.Rate(1.0)
+    # while not rospy.is_shutdown():
+    #
+    #     rate.sleep()
 
 
 if __name__ == '__main__':
