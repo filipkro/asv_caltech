@@ -244,7 +244,7 @@ def get_distance(ang, nbr_of_points=5):
 
 # Compares distance to shore on either right or left side to the threshold.
 # If the number of points exceeds some number, turn around
-def to_close(dir):
+def too_close(dir):
     global state_asv, wayPoints, ranges, lidar_inc
     inc = lidar_inc
     dist_th = rospy.get_param('dist_th', 2.0)
@@ -252,16 +252,26 @@ def to_close(dir):
 
     #Look at an angle of pi/4 above and below transect point
     if dir:
-        start_ang = angleDiff(theta_p - state_asv[2] - math.pi/4)
-        end_ang = angleDiff(theta_p - state_asv[2] + math.pi/4)
+        start_ang = angleDiff(theta_p - math.pi/4)
+        end_ang = angleDiff(theta_p  + math.pi/4)
     elif not dir:
-        start_ang = angleDiff(theta_p - state_asv[2] + math.pi - math.pi/4)
-        end_ang = angleDiff(theta_p - state_asv[2] + math.pi + math.pi/4)
+        start_ang = angleDiff(theta_p  + math.pi - math.pi/4)
+        end_ang = angleDiff(theta_p  + math.pi + math.pi/4)
 
     #If more than a specified number of the points in the region specified above are within threshold, turn around
-    dists = ranges[np.arange(int((start_ang + math.pi)/inc) % len(ranges), int((end_ang + math.pi)/inc) % len(ranges))]
+    if (int((start_ang + math.pi)/inc) <  int((end_ang + math.pi)/inc)): 
+        dists = ranges[np.arange(int((start_ang + math.pi)/inc) % len(ranges), int((end_ang + math.pi)/inc) % len(ranges))]
+    else:
+        dists1 = ranges[np.arange(int((start_ang + math.pi)/inc), len(ranges))]
+        dists2 = ranges[np.arange(0, int((end_ang + math.pi)/inc))]
+        dists = np.concatenate((dists1, dists2))
+        print(dists)
+    
     close = np.nonzero(dists < dist_th)
-    return len(close) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
+    
+    print(close[0])
+    print('length of close ' , len(close[0]))
+    return len(close[0]) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
 
 #Get shortest distance from lidar in specified interval
 def get_shortest(start_ang, end_ang):
@@ -373,8 +383,8 @@ def transect():
     run_time = rospy.get_param('/run_time', 100)
     max_transect = rospy.get_param('/max_runtime', 10)
     state_pub.publish(STATE)
-    if to_close(direction):
-        print('toclose')
+    if too_close(direction):
+        print('too close')
         transect_cnt += 1
         direction = not direction
 
@@ -389,6 +399,7 @@ def transect():
             target_index = 1
         else:
             target_index = 0
+
         transect_controller.update_variable(state_asv, state_ref, v_asv,
                             target_index, wayPoints, current)
         publish_cmds(transect_controller)
