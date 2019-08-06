@@ -25,7 +25,7 @@ h = 0.2
 
 state_asv = [0.0, 0.0, 0.0] # x, y, theta
 state_ref = [0.0, 0.0, 0.0] # x_ref, y_ref, theta_ref
-current = [0.0, 0.0] #current_angle, current_velocity
+current = [0.0, 0.0] #current_velocity, current_angle
 v_asv = [0.0, 0.0, 0.0] # x_vel;, y_vel, ang_course
 wayPoints = [] # list of waypoints
 target_index = 0 # index of target way point in the wayPoints
@@ -58,7 +58,7 @@ def calc_control():
     rospy.logdebug("Desired wp: " + str(state_ref))
     rospy.logdebug("vel(x,y): " + str(v_asv))
 
-    v_ref = rospy.get_param('/v_ref', 0.0)
+    v_ref = rospy.get_param('/v_ref', 0.5)
     VEL_THRESHOLD = rospy.get_param('/v_threshold', 0.2)
 
 
@@ -81,22 +81,24 @@ def calc_control():
 
 
     '''evaluate rotation of robot compared to current'''
-    e_heading = angleDiff(current[0] + math.pi - state_asv[2])
+    e_heading = angleDiff(current[1] - state_asv[2])
+    print(e_heading)
 
+    if abs(e_heading) > math.pi/3 and current[0] > 0.1:
+        print('FORSTA')
 
-    if abs(e_heading) > math.pi/3 and current[1] > 0.1:
-        #print('FORSTA')
-        #print(e_heading)
         '''turn robot back towards current if it points to much downward'''
         e_ang = e_heading
     elif destReached:
-        #print('ANDRA')
+        print('ANDRA')
         '''if completed turn boat towards current, keep velocity at 0.0
             reason not to have this if statement first is thrust is needed to rotate boat'''
         e_ang = e_heading
+        print(e_heading)
+        print(current)
         v_ref = 0.0
     else:
-        #print('TREDJE')
+        print('TREDJE')
         '''desired angle and velocity of robot'''
         des_angle = math.atan2(state_ref[1] - state_asv[1], state_ref[0] - state_asv[0])
         v = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
@@ -109,7 +111,7 @@ def calc_control():
             '''else use GPS'''
             ang_dir = v_asv[2]
 
-        if abs(angleDiff(des_angle - current[0])) < math.pi/2 and current[1] > 0.1:
+        if abs(angleDiff(des_angle + math.pi - current[1])) < math.pi/2 and current[0] > 0.1:
             '''if goal point is downstream go towards it by floating with current'''
             e_ang = angleDiff(math.pi - des_angle + ang_dir)
             v_ref = -v_ref/2
@@ -117,7 +119,7 @@ def calc_control():
         else:
             e_ang = angleDiff(des_angle - ang_dir)
 
-        if abs(angleDiff(current[0] - state_asv[2])) < 0.05 and abs(current[1] - v_ref) < 0.1:
+        if abs(angleDiff(current[1] + math.pi - state_asv[2])) < 0.05 and abs(current[0] - v_ref) < 0.1:
             v_ref -= 0.5
 
 
@@ -144,7 +146,7 @@ def thrust_control(e_v):
     MAX_THRUST = 1000
     MIN_THRUST = -1000
     '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
-    K = rospy.get_param('thrust/K', 500.0)
+    K = rospy.get_param('thrust/K', 1000.0)
     Ti = rospy.get_param('thrust/Ti', 1.0)
 
     rospy.logdebug("THRUST:")
@@ -168,7 +170,7 @@ def rudder_control(e_ang):
     MIN_RUDDER = 1195
 
     '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
-    K = rospy.get_param('rudder/K', 2000.0)
+    K = rospy.get_param('rudder/K', 500.0)
     Ti = rospy.get_param('rudder/Ti', 10.0)
     ##########################
     rospy.logdebug("RUDDER:")

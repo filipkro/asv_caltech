@@ -87,8 +87,9 @@ def setup_walls():
 
     pub_wall.publish(walls)
 
-def calc_lidar():
+def update_lidar():
     global x, theta, lidar_seq, pub_lidar
+    # print("IN lidar_seq")
     lidar_len = 400
     scan = LaserScan()
     inc = 2*math.pi/lidar_len
@@ -97,7 +98,7 @@ def calc_lidar():
         phi_lidar = -math.pi + i*inc
         phi = theta + phi_lidar
         if math.pi/2 - 0.1 <= abs(phi) <= math.pi/2 + 0.1:
-            ranges[i] = inf
+            ranges.append(100)
         else:
             if abs(phi) < math.pi/2:
                 dx = 10 - x
@@ -105,9 +106,9 @@ def calc_lidar():
                 dx = -10 - x
             r = dx/math.cos(phi)
             if r < 20:
-                ranges[i] = r
+                ranges.append(r)
             else:
-                ranges[i] = inf
+                ranges.append(100)
 
 
     scan.header.stamp = rospy.get_rostime()
@@ -120,10 +121,6 @@ def calc_lidar():
     scan.ranges = ranges
 
     pub_lidar.publish(scan)
-
-
-
-
 
 
 
@@ -144,6 +141,9 @@ def update_state(msg):
     #uR = -uR/ 100
     #uL = -uL/ 100
 
+    update_lidar()
+
+
     uR = msg.strboard/100.0
     uL = msg.port/100.0
 
@@ -152,7 +152,7 @@ def update_state(msg):
     current_v = rospy.get_param('v_current', 0.5)
     current_ang = rospy.get_param('current_ang', math.pi/2)
     current = Float32MultiArray()
-    current.data = [current_ang, current_v]
+    current.data = [current_v, current_ang]
 
     # Rudder Angle
     rudder_rate = (1894.0 - 1195.0)/90.0
@@ -171,14 +171,14 @@ def update_state(msg):
 
    # update state
     a = (uR + uL)/m - b_l/m * v
-    print(a)
+    # print(a)
     ang_acc = -b_r / I_zz * omega  +  (uR + uL) * math.sin(rudder_ang) * x_cg / I_zz
 
     v = v + a * dt
     omega = omega + ang_acc * dt
 
-    robot_vx = v * math.cos(theta) + current_v * math.cos(current_ang)
-    robot_vy = v * math.sin(theta) + current_v * math.sin(current_ang)
+    robot_vx = v * math.cos(theta) - current_v * math.cos(current_ang)
+    robot_vy = v * math.sin(theta) - current_v * math.sin(current_ang)
     v_robot = np.array([robot_vx, robot_vy])
 
     ang_course = math.atan2(v_robot[1], v_robot[0])
@@ -214,14 +214,14 @@ def update_state(msg):
     pub_adcp.publish(current)
     # pub_pose.publish(pose)
 
-    print("x: ", x)
-    print("y: ", y)
-    print("theta: ", theta)
-    print("xvel: ", robot_vx)
-    print("yvel: ", robot_vy)
-    print("ang_course: ", ang_course)
-    print("current_v", current_v)
-    print("current_ang", current_ang)
+    # print("x: ", x)
+    # print("y: ", y)
+    # print("theta: ", theta)
+    # print("xvel: ", robot_vx)
+    # print("yvel: ", robot_vy)
+    # print("ang_course: ", ang_course)
+    # print("current_v", current_v)
+    # print("current_ang", current_ang)
 
     # odom message
 
@@ -242,7 +242,8 @@ def update_state(msg):
 
     # print(state.v)
     # print(state.theta)
-    # print("x, y:", state.x, state.y)
+    print("x, y:", x, y)
+    print('current: ', current.data[1])
     # print(state.y)
     # self.state_est.lat, self.state_est.lon = utm.to_latlon(self.utm_x, self.utm_y, 11, 'S')
 
