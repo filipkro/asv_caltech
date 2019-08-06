@@ -247,7 +247,7 @@ def get_distance(ang, nbr_of_points=5):
 def too_close(dir):
     global state_asv, wayPoints, ranges, lidar_inc
     inc = lidar_inc
-    dist_th = rospy.get_param('dist_th', 2.0)
+    dist_th = rospy.get_param('dist_th', 5.0)
     theta_p = np.arctan2(wayPoints[0].y - wayPoints[1].y, wayPoints[0].x - wayPoints[1].x)
 
     #Look at an angle of pi/4 above and below transect point
@@ -399,6 +399,8 @@ def transect():
             target_index = 1
         else:
             target_index = 0
+
+        print('target index', target_index)
 
         transect_controller.update_variable(state_asv, state_ref, v_asv,
                             target_index, wayPoints, current)
