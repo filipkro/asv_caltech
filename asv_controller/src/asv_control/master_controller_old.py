@@ -60,11 +60,8 @@ def updateTarget():
         + (state_asv[1] - state_ref[1])**2 )
 
     DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
-    
-    # if we're close to our target then do different things depends on which 
-    # controller we're running
     if (dist_2_target <= DIST_THRESHOLD):
-        if rospy.get_param('/nav_mode', 'Waypoint') == 'Waypoint':
+        if rospy.get_param('/nav_mode') == 'Waypoint':
             # for way points, simply iterate through the points and stop
             if (target_index < len(wayPoints)-1):
                 target_index += 1
@@ -74,12 +71,9 @@ def updateTarget():
             else:
                 rospy.loginfo('Destination reached')
                 return False
-        elif rospy.get_param('/nav_mode', 'Waypoint') == 'Transect':
-            if (len(wayPoints) <= 1):
-                rospy.loginfo('Not enough points for transect')
-                rospy.set_param('/nav_mode', 'Waypoint')
-            elif (target_index == 0):
-                # Repeat between the first two points
+        elif rospy.get_param('/nav_mode') == 'Transect':
+            # for transect, just repeat. Only take first two points
+            if (target_index == 0):
                 target_index = 1
                 state_ref[0] = wayPoints[target_index].x
                 state_ref[1] = wayPoints[target_index].y
@@ -89,8 +83,6 @@ def updateTarget():
                 state_ref[0] = wayPoints[target_index].x
                 state_ref[1] = wayPoints[target_index].y
                 return True
-            # add something here that'll switch transect back to waypoints once
-            # certain time elapsed
         else:
             # don't run if we don't know what controller it is
             return False
@@ -151,11 +143,11 @@ def switchControl():
     '''Choose the right controller'''
     controller_type = rospy.get_param('/nav_mode', 'Waypoint')
     if (controller_type == "Waypoint"):
-        return PI_controller.PI_controller()
+        return PI_controller
     elif (controller_type == "Transect"):
-        return transect_controller.Transect_controller()
+        return transect_controller
     else:
-        return PI_controller.PI_controller()
+        return PI_controller
 
 def main():
     global samp_time, wayPoints, h, vref, current
@@ -173,7 +165,8 @@ def main():
     ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
 
     rate = rospy.Rate(1/h)
-    create_wpList()
+#    create_wpList()
+    # print(wayPoints)
 
     while not rospy.is_shutdown():
         # Master control param
