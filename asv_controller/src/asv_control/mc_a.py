@@ -108,7 +108,7 @@ def s16(value):
 
 def lidar_callb(msg):
     global ranges, lidar_inc
-    ranges = np.array(msg.ranges) 
+    ranges = np.array(msg.ranges)
     lidar_inc = 2*math.pi/len(ranges)
 
 
@@ -179,7 +179,8 @@ def get_distance(ang, nbr_of_points=5):
     global state_asv, ranges, lidar_inc
     nbr = int(math.floor(nbr_of_points/2))
     inc = lidar_inc
-    index = int((angleDiff(state_asv[2] - ang) + math.pi)/inc)
+    # index = int((angleDiff(state_asv[2] - ang) + math.pi)/inc)
+    index = int ((angleDiff(ang - state_asv[2]) + math.pi)/inc)
     range_sum = ranges[index]
     for i in range(1,nbr+1):
         range_sum += math.cos(inc*i)*(ranges[(index+i) % len(ranges)] + ranges[(index-i) % len(ranges)])
@@ -327,8 +328,7 @@ def hold():
     if (rospy.get_rostime() - start_time).to_sec() > waitTime: # and len(ranges) != 0:
         #calculate two points on the line normal to the water current
         wayPoints = calculate_transect(ADCP_mean[2])
-        print('wP: ', wayPoints)
-
+        PI_controller_old.destinationReached(False)
         STATE = 'TRANSECT'
         # STATE = 'HOLD' # just for testing purposes
         rospy.set_param('/ADCP/reset', True)
@@ -346,7 +346,7 @@ def transect():
     if too_close(direction):
         direction = not direction
         transect_cnt += 1
-        if lawnmower and transect_cnt > 2:
+        if lawnmower: # and transect_cnt > 2:
             STATE = 'MIDDLE'
             print(STATE)
             print('state_asv, line 350: ', state_asv)
@@ -355,9 +355,11 @@ def transect():
             if direction:
                 theta_p = angleDiff(theta_p - math.pi) #left
 
+            print('theta_p', theta_p)
             dist = get_distance(theta_p)
-            state_ref[0] = state_asv[0] + dist * math.cos(theta_p)
-            state_ref[1] = state_asv[1] + dist * math.sin(theta_p)
+            print('dist', dist)
+            state_ref[0] = state_asv[0] + dist * math.cos(theta_p)/2
+            state_ref[1] = state_asv[1] + dist * math.sin(theta_p)/2
             print('state_asv, line 354: ', state_asv)
             print('state_ref, line 355: ', state_ref)
             rospy.set_param('ADCP/mean', False)
@@ -395,14 +397,15 @@ def middle():
     global state_asv, state_ref, v_asv, target_index, wayPoints, current, \
             STATE, ADCP_mean, direction, transect_cnt, state_pub, newTransect
     state_pub.publish(STATE)
-
-    if destinationReached():
+    destReached = destinationReached()
+    if destReached:
         dist_upstream = rospy.get_param('/dist_upstream', 5.0)
         state_ref[0] = dist_upstream * math.cos(ADCP_mean[2])
         state_ref[1] = dist_upstream * math.sin(ADCP_mean[2])
         STATE = 'UPSTREAM'
-        
+
     PI_controller_old.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
+    # PI_controller_old.destinationReached(destReached)
     publish_cmds(PI_controller_old)
 
 
