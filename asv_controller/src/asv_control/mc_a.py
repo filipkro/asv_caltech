@@ -252,11 +252,11 @@ def too_close(dir):
 
     #Look at an angle of pi/4 above and below transect point
     if dir:
-        start_ang = angleDiff(theta_p - math.pi/4)
-        end_ang = angleDiff(theta_p  + math.pi/4)
+        start_ang = angleDiff(theta_p - state_asv[2] - math.pi/4 + math.pi)
+        end_ang = angleDiff(theta_p - state_asv[2] + math.pi/4 + math.pi)
     elif not dir:
-        start_ang = angleDiff(theta_p  + math.pi - math.pi/4)
-        end_ang = angleDiff(theta_p  + math.pi + math.pi/4)
+        start_ang = angleDiff(theta_p  - state_asv[2]  - math.pi/4)
+        end_ang = angleDiff(theta_p - state_asv[2]  + math.pi/4)
 
     #If more than a specified number of the points in the region specified above are within threshold, turn around
     if (int((start_ang + math.pi)/inc) <  int((end_ang + math.pi)/inc)): 
@@ -265,12 +265,17 @@ def too_close(dir):
         dists1 = ranges[np.arange(int((start_ang + math.pi)/inc), len(ranges))]
         dists2 = ranges[np.arange(0, int((end_ang + math.pi)/inc))]
         dists = np.concatenate((dists1, dists2))
-        print(dists)
+        #print(dists)
     
+    #print("Theta p : ", theta_p)
+    #print('Heading : ', state_asv[2])
+    #print("Angles : ", start_ang, end_ang)
+    #print(int((start_ang + math.pi)/inc),int((end_ang + math.pi)/inc))
+    #print(dists)
     close = np.nonzero(dists < dist_th)
     
-    print(close[0])
-    print('length of close ' , len(close[0]))
+    #print(close[0])
+    #print('length of close ' , len(close[0]))
     return len(close[0]) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
 
 #Get shortest distance from lidar in specified interval
@@ -314,9 +319,9 @@ def calculate_transect(theta_c):
     point2 = GPS_data()
     # sample cerain number of points from the sides of the current angle
     distL = get_distance(theta_c + math.pi/2, 21)
-    print('distL', distL)
+    #print('distL', distL)
     distR = get_distance(theta_c - math.pi/2, 21)
-    print('distR', distR)
+    #print('distR', distR)
 
     # generate points using simple trig
     point1.x = state_asv[0] + (distR + 10) * math.cos(theta_c - math.pi/2)
@@ -324,8 +329,8 @@ def calculate_transect(theta_c):
     point2.x = state_asv[0] + (distL + 10) * math.cos(theta_c + math.pi/2)
     point2.y = state_asv[1] + (distL + 10) * math.sin(theta_c + math.pi/2)
 
-    print(point1)
-    print(point2)
+    #print(point1)
+    #print(point2)
 
     #how should the points be saved for transect controller??
     return [point1, point2]
@@ -387,10 +392,7 @@ def transect():
         print('too close')
         transect_cnt += 1
         direction = not direction
-
-    if transect_cnt == 2:
         wayPoints = calculate_transect(ADCP_mean[2])
-
     if (rospy.get_rostime() - start_time).to_sec() > run_time or transect_cnt > max_transect:
         STATE = 'HOME'
     else:

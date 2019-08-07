@@ -119,6 +119,9 @@ def update_lidar():
     scan.angle_max = math.pi
     scan.angle_increment = inc
     scan.ranges = ranges
+    scan.range_min = 0.0
+    scan.range_max = 100.0
+    scan.scan_time = 0.01
 
     pub_lidar.publish(scan)
 
