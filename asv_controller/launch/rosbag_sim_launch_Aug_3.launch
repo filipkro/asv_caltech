@@ -1,0 +1,36 @@
+<!-- This launch file is created to test the rosbags recorded during the week
+of July 31st. -->
+<launch>
+
+    <!-- Rosbag Playing -->
+    <node
+	pkg="rosbag"
+	name="play_data"
+	type="play"
+	args="/media/nvidia/TOSHIBA\ EXT/Data/Data_2019-07-29-17-35-20.bag"
+    /> 
+
+    <!-- Fix time, because the lidar reading was not aligned with ros time -->
+    <node 
+        pkg="lidar_reader"
+        name="time_fixer"
+        type="fix_time.py"
+    />
+
+    <!-- Compress 3d point cloud down to 2d. 
+        Note: Topic parameters are inside lidar_os.launch -->
+    <include 
+        file="$(find pointcloud_to_laserscan)/launch/lidar_os.launch"
+    />
+    
+    <!-- add transform. static -->
+    <node 
+        pkg="tf"
+        name="static_transformer"
+        type="static_transform_publisher"
+        args="0 0 0 0 0 0 /os1_lidar /map 100"
+    />
+
+    <!-- todo, add the controller here... for now debug by hand -->
+
+</launch>
