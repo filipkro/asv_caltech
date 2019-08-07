@@ -112,7 +112,6 @@ def vertical_speed_control(state_ref):
     rospy.logdebug("u_nom " + str(u_nom))
     rospy.logdebug("thrust_dir " + str(thrust_dir))
 
-
     return v_correct, u_nom
 
 def calc_lateral_ang(des_point, v_x_des):

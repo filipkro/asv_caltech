@@ -1,0 +1,91 @@
+<launch>
+    <!-- Remapping -->
+    <remap from="imu" to="sensors/imu"/>
+    <remap from="fix" to="GPS/fix"/>
+    <remap from="vel" to="GPS/vel"/>
+    <remap from="GPS_coord" to="GPS/xy_coord"/>
+
+	<!-- Motor command distributor -->
+    <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
+        <param name="sim" value="False"/>
+        <param name='compass_offset' value='109.0'/>
+    </node>
+
+    <!-- Arduino + Servo + IMU -->
+
+    <node pkg="rosserial_python" name="ros_arduino" type="serial_node.py">
+        <param name="port" value="/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_FFFFFFFFFFFF515B2503-if00"/>
+    </node>
+
+    <!-- Motors -->
+    <arg name="port_port" default="/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VWDWP-if00-port0" />
+    <node pkg="roboteq_driver" type="driver_node" name="port_driver" output="screen">
+        <param name="port" value="$(arg port_port)" />
+        <param name="baud" value="115200" />
+        <remap
+            from="roboteq_driver/cmd"
+            to="roboteq_driver/port/cmd"
+        />
+        <remap
+            from="roboteq_driver/feedback"
+            to="roboteq_driver/port/feedback"
+        />
+    </node>
+
+    <!-- Motors -->
+    <arg name="star_port" default="/dev/serial/by-id/usb-FTDI_USB_Serial_Converter_FT8VW9AR-if00-port0" />
+    <node pkg="roboteq_driver" type="driver_node" name="starboard_driver" output="screen">
+        <param name="port" value="$(arg star_port)" />
+        <param name="baud" value="115200" />
+        <remap
+            from="roboteq_driver/cmd"
+            to="roboteq_driver/star/cmd"
+        />
+        <remap
+            from="roboteq_driver/feedback"
+            to="roboteq_driver/star/feedback"
+        />
+    </node>
+
+    <!-- ADCP -->
+    <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen"/>
+
+    <!--  GPS -->
+    <!-- Should origin be sent as a param?? -->
+    <node pkg="gps_reader" name="gps_reader" type="GPS_node.py" output="screen">
+	    <rosparam>
+           /originLat: 0.0
+           /originLon: 0.0
+        </rosparam>
+    </node>
+
+    <node pkg="nmea_navsat_driver" name="navsat_driver" type="nmea_serial_driver" output="screen">
+        <param name="port" value="/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller-if00-port0"/>
+	      <param name="baud" value="19200"/>
+    </node>
+
+    <node pkg="asv_controller" name="master_controller" type="master_control_node.py" output="screen">
+      <rosparam>
+        /run: False
+        /v_ref: 0.5
+        /thrust/K: 20.0
+        /thrust/Ti: 1.0
+        /rudder/K: 1000.0
+        /rudder/Ti: 10.0
+        /vel_threshold: 0.2
+        /nav_mode: 'Waypoint'
+        /transect/K_v: 20
+        /transect/K_latAng: 0.5
+        /transect/Kp_turn: 200
+        /transect/speed_ref: 0.5
+      </rosparam>
+    </node>
+
+    <!-- <node
+	pkg="rosbag"
+	name="record_odometry"
+	type="record"
+	args="-a ~/asv_log/data"
+	/> -->
+
+</launch>
