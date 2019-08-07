@@ -119,6 +119,8 @@ def update_lidar():
     scan.angle_max = math.pi
     scan.angle_increment = inc
     scan.ranges = ranges
+    scan.range_min = 0.45
+    scan.range_max = 150
 
     pub_lidar.publish(scan)
 
@@ -142,7 +144,7 @@ def update_state(msg):
     #uL = -uL/ 100
 
     update_lidar()
-
+    setup_walls()
 
     uR = msg.strboard/100.0
     uL = msg.port/100.0

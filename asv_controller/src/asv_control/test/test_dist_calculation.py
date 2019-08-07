@@ -5,6 +5,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+
 print('loading...')
 bag = rosbag.Bag('/media/nvidia/TOSHIBA EXT/2019-08-05-16-08-52.bag')
 
@@ -36,22 +37,27 @@ def angDiff(value):
     return value
 
 #Calculates two transect points (on land) creating a line perpendicular to current
-def calculate_transect(theta_c):
+def calculate_transect(theta_c, lidar_inc, ranges, heading):
     '''Input:
          theta_c: current angle (float) in global frame
        Output:
          [state, state]: two points on the line normal to theta_c '''
-    point1 = GPS_data()
-    point2 = GPS_data()
+    point1 = [0,0]
+    point2 = [0,0]
     # sample cerain number of points from the sides of the current angle
-    distLs, angL, distL = get_distance(theta_c + math.pi/2, 21)
-    distRs, angR, distR = get_distance(theta_c - math.pi/2, 21)
+    distLs, angL, distL = get_distance(theta_c + math.pi/2, lidar_inc, ranges, heading, 21)
+    distRs, angR, distR = get_distance(theta_c - math.pi/2, lidar_inc, ranges, heading, 21)
+
+    state_asv = [0,0,0]
+    
+    distL = 100 if distL == float('inf') else distL
+    distR = 100 if distR == float('inf') else distR
 
     # generate points using simple trig
-    point1.x = state_asv[0] + (distR + 10) * math.cos(theta_c - math.pi/2)
-    point1.y = state_asv[1] + (distR + 10) * math.sin(theta_c - math.pi/2)
-    point2.x = state_asv[0] + (distL + 10) * math.cos(theta_c + math.pi/2)
-    point2.y = state_asv[1] + (distL + 10) * math.sin(theta_c + math.pi/2)
+    point1[0] = state_asv[0] + (distR + 10) * math.cos(theta_c - math.pi/2)
+    point1[1]= state_asv[1] + (distR + 10) * math.sin(theta_c - math.pi/2)
+    point2[0] = state_asv[0] + (distL + 10) * math.cos(theta_c + math.pi/2)
+    point2[1]= state_asv[1] + (distL + 10) * math.sin(theta_c + math.pi/2)
 
     #how should the points be saved for transect controller??
     return [point1, point2]
@@ -72,7 +78,7 @@ def get_distance(ang, lidar_inc, ranges, heading, nbr_of_points=5):
     valid_angles = []
 
     for k in range(1,nbr+1):
-        range_sum += math.cos(inc*k)*(ranges[index+k] + ranges[index-k])
+       range_sum += math.cos(inc*k)*(ranges[index+k] + ranges[index-k])
        valid_ranges.append(ranges[index+k])
        valid_angles.append(ang + inc*k)
 
@@ -81,7 +87,7 @@ def get_distance(ang, lidar_inc, ranges, heading, nbr_of_points=5):
 
     # return mean of nbr_of_points (uneven) closest points
     #return range_sum/(2*nbr+1)
-    return valid_ranges, valid_angles, range_sum
+    return valid_ranges, valid_angles, range_sum/(2*nbr+1)
     
 i_a = 0 # for adcp iteration
 j = 0 # for gps
@@ -138,6 +144,7 @@ for topic, msg, t in bag.read_messages(topics=['/adcp/data', '/GPS/xy_coord', '/
             y[i] = xy_rot[1][0]
 
 
+
         # remove inf values
         x = x[np.logical_and(x!=np.inf, x!=-np.inf)]
         x = x[np.logical_not(np.isnan(x))]
@@ -147,13 +154,14 @@ for topic, msg, t in bag.read_messages(topics=['/adcp/data', '/GPS/xy_coord', '/
 
         ## now find points that are on both sides of the boat angle
         bt_angle = angDiff(ang_bt[i_a-1] + ang_off)
-        right_dist, right_angles = get_distance(-math.pi/2, angle_inc, msg.ranges, cur_heading, 21)
+        right_dist, right_angles, range_sum = get_distance(bt_angle-math.pi-math.pi/2, angle_inc, msg.ranges, cur_heading, 21)
+        p1, p2 = calculate_transect(bt_angle-math.pi, angle_inc, msg.ranges, cur_heading)
+        print(p1, p2)
         print(right_angles)
         x_lidar = np.zeros(len(right_dist))
         y_lidar = np.zeros(len(right_dist))
         print(right_dist)
-        for z in range(len(x_lidar)):
-                    
+        for z in range(len(x_lidar)):    
             x_lidar[z] = right_dist[z] * math.cos(right_angles[z])
             y_lidar[z] = right_dist[z] * math.sin(right_angles[z])
         
@@ -162,6 +170,7 @@ for topic, msg, t in bag.read_messages(topics=['/adcp/data', '/GPS/xy_coord', '/
         plt.axis([-50, 50, -50, 100])
         plt.plot(x, y, 'bo', label='Original points')
         plt.plot(x_lidar, y_lidar, 'ro')
+        plt.plot([p1[0],p2[0]], [p1[1],p2[1]], 'k-o')
         plt.pause(0.05)
     
     elif topic == '/sensors/imu':
