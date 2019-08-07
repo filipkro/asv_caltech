@@ -26,6 +26,14 @@ STATE = ''
 lidar_inc = 0.0
 transect_cnt = 0 # number of transects made
 
+ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
+state_pub = rospy.Publisher('controller/STATE', String, queue_size=1)
+start_time = 0.0
+direction = True #true - look at shore to the left, false - look at shore to the right
+transect_cnt = 0
+home_coord = []
+newTransect = False
+
 def GPS_callb(msg):
     global state_asv, v_asv
     # position
@@ -112,13 +120,7 @@ def lidar_callb(msg):
 # TRANSECT2 - transects
 # HOME - go home
 
-ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
-state_pub = rospy.Publisher('controller/STATE', String, queue_size=1)
-start_time = 0.0
-direction = True #true - look at shore to the left, false - look at shore to the right
-transect_cnt = 0
-home_coord = []
-newTransect = False
+
 
 def main():
     global wayPoints, h, current, STATE, home_coord
@@ -317,7 +319,7 @@ def hold():
             STATE, current, ADCP_mean, direction, ranges, state_pub
     state_pub.publish(STATE)
     waitTime = rospy.get_param('/wait_time', 2.0)
-    state_ref = state_asv
+    # state_ref = state_asv
     PI_controller_old.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
     PI_controller_old.destinationReached(True)
     publish_cmds(PI_controller_old)
@@ -346,8 +348,18 @@ def transect():
         transect_cnt += 1
         if lawnmower and transect_cnt > 2:
             STATE = 'MIDDLE'
-            state_ref[0] = (wayPoints[0].x + wayPoints[1].x)/2
-            state_ref[1] = (wayPoints[0].y + wayPoints[1].y)/2
+            print(STATE)
+            print('state_asv, line 350: ', state_asv)
+            print('state_ref, line 351: ', state_ref)
+            theta_p = math.atan2(wayPoints[0].y - wayPoints[1].y, wayPoints[0].x - wayPoints[1].x)
+            if direction:
+                theta_p = angleDiff(theta_p - math.pi) #left
+
+            dist = get_distance(theta_p)
+            state_ref[0] = state_asv[0] + dist * math.cos(theta_p)
+            state_ref[1] = state_asv[1] + dist * math.sin(theta_p)
+            print('state_asv, line 354: ', state_asv)
+            print('state_ref, line 355: ', state_ref)
             rospy.set_param('ADCP/mean', False)
             # STATE = 'UPSTREAM'
             # print('before', state_ref)
