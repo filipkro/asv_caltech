@@ -3,21 +3,29 @@
 import rospy
 import PI_controller
 import transect_controller
+from Smart_LIDAR_controller import Smart_LiDAR_Controller
 from gps_reader.msg import GPS_data, GPS_WayPoints
 from motor_control.msg import MotorCommand
 from geometry_msgs.msg import PointStamped, PoseStamped
 from std_msgs.msg import Float32, Float32MultiArray
+from sensor_msgs.msg import LaserScan
 import math
+import numpy as np
 from visualization_msgs.msg import Marker, MarkerArray # for simulation
 
 state_asv = [0.0, 0.0, 0.0] # x, y, theta
-state_ref = [0.0, 0.0, 0.0] # x_ref, y_ref, theta_ref
+state_ref = [2.0, 0.0, 0.0] # x_ref, y_ref, theta_ref
 v_asv = [0.0, 0.0, 0.0] # x_ve;, y_vel, ang_course
 current = [0.0, 0.0] #current_velocity, current_angle
 wayPoints = [] # list of waypoints
 target_index = 0 # index of target way point in the wayPoints
 h = 0.2
 vref = 0.0
+ranges = []
+lidar_inc = 0.0
+
+# controllers
+smart_controller = Smart_LiDAR_Controller()
 
 ########################
 ## Callback funcitons ##
@@ -51,6 +59,12 @@ def ADCP_callb(msg):
     global current
     current = msg.data
 
+def lidar_callb(msg):
+    global ranges, lidar_inc
+    ranges = np.array(msg.ranges)
+    lidar_inc = 2*math.pi/len(ranges)
+
+
 def updateTarget():
     '''Update target way point based on current position
         return True when there's still point to navigate
@@ -60,11 +74,11 @@ def updateTarget():
         + (state_asv[1] - state_ref[1])**2 )
 
     DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
-    
+    control_mode = rospy.get_param('/nav_mode', 'Waypoint')
     # if we're close to our target then do different things depends on which 
     # controller we're running
-    if (dist_2_target <= DIST_THRESHOLD):
-        if rospy.get_param('/nav_mode', 'Waypoint') == 'Waypoint':
+    if (dist_2_target <= DIST_THRESHOLD and control_mode != 'Smart'):
+        if control_mode == 'Waypoint':
             # for way points, simply iterate through the points and stop
             if (target_index < len(wayPoints)-1):
                 target_index += 1
@@ -74,7 +88,7 @@ def updateTarget():
             else:
                 rospy.loginfo('Destination reached')
                 return False
-        elif rospy.get_param('/nav_mode', 'Waypoint') == 'Transect':
+        elif control_mode == 'Transect':
             if (len(wayPoints) <= 1):
                 rospy.loginfo('Not enough points for transect')
                 rospy.set_param('/nav_mode', 'Waypoint')
@@ -94,8 +108,8 @@ def updateTarget():
         else:
             # don't run if we don't know what controller it is
             return False
-
     else:
+        # smart mode can handle things on its own
         return True
 
 
@@ -149,11 +163,15 @@ def navGoal_callb(msg):
 
 def switchControl():
     '''Choose the right controller'''
+    global smart_controller, ranges, lidar_inc
     controller_type = rospy.get_param('/nav_mode', 'Waypoint')
     if (controller_type == "Waypoint"):
         return PI_controller.PI_controller()
     elif (controller_type == "Transect"):
         return transect_controller.Transect_controller()
+    elif (controller_type == "Smart"):
+        smart_controller.update_lidar(ranges, lidar_inc) # smart controlelr needs lidar
+        return smart_controller
     else:
         return PI_controller.PI_controller()
 
@@ -167,6 +185,7 @@ def main():
     rospy.Subscriber('ControlCenter/gps_wp', GPS_WayPoints, WP_callb)
     rospy.Subscriber('adcp/data', Float32MultiArray, ADCP_callb) # needs fixing for real thing
     rospy.Subscriber('move_base_simple/goal', PoseStamped, navGoal_callb)
+    rospy.Subscriber('/os1/scan', LaserScan, lidar_callb)
 
     # publish to motor controller
     motor_cmd = MotorCommand()
@@ -183,6 +202,7 @@ def main():
         controller = switchControl()
         rospy.logdebug('Target Index '+ str(target_index))
         trgt_updated = updateTarget()
+
         if run or trgt_updated:
             controller.destinationReached(not trgt_updated)
             controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)

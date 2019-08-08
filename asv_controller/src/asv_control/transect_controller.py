@@ -16,8 +16,8 @@ from Generic_Controller import Generic_Controller
 # note: for transect control, index can only go between 0 and 1
 
 class Transect_controller(Generic_Controller):
-    def __init__(self):
-        Generic_Controller.__init__(self)
+    def __init__(self, controller=None):
+        Generic_Controller.__init__(self, controller=controller)
         
         # member specific to transect controller
         self.transect_p1 = None
@@ -30,8 +30,8 @@ class Transect_controller(Generic_Controller):
         self.last_ang_des = 0 # previous deisred angle
 
         # parameters specific to transect controller
-        self.K_v = rospy.get_param('/transect/K_v', 200) # vertical speed gain
-        self.K_t = rospy.get_param('thrust/K', 10.0)
+        self.K_v = rospy.get_param('/transect/K_v', 10.0) # vertical speed gain
+        self.K_t = rospy.get_param('transect_thrust/K', 10.0)
         self.K_latAng = rospy.get_param('/transect/K_latAng', 0.5) # lateral speed to angle
         self.Kp_turn = rospy.get_param('/transect/turn_gain', 200) # turning gain for heading
         self.v_x_des = rospy.get_param('/transect/speed_ref', 0.5)
@@ -82,8 +82,8 @@ class Transect_controller(Generic_Controller):
     def vertical_speed_control(self):
         '''calculate current velocity toward the waypoint, increase or decrease u_nom'''
         global K_v, last_point, v_asv, state_asv
-        self.K_v = rospy.get_param('/transect/K_v', 200)
-        self.K_t = rospy.get_param('thrust/K', 10.0)
+        self.K_v = rospy.get_param('/transect/K_v', 10.0)
+        self.K_t = rospy.get_param('/transect_thrust/K', 10.0)
 
         # Calculate drift away from the line
         cur_point = self.last_point
@@ -113,7 +113,7 @@ class Transect_controller(Generic_Controller):
         # adding an integral term to remove error (ignore for now)
         # drift_error_integral = self.drift_error_integral + drift_distance * self.dt
         v_correct = -drift_distance * self.K_v #- self.drift_error_integral * self.K_vi
-        u_nom = (v_correct + drift_v) * thrust_dir * K
+        u_nom = (v_correct + drift_v) * thrust_dir * self.K_t # or 10
 
         rospy.logdebug("Drift dist " + str(drift_distance))
         rospy.logdebug("Drift v " + str(drift_v))
@@ -134,7 +134,7 @@ class Transect_controller(Generic_Controller):
 
         line_angle = math.atan2((self.state_ref[1] - self.last_point[1]), \
                                     (self.state_ref[0] - self.last_point[0]))
-        v_ang_from_line = angleDiff(self.v_asv[2] - line_angle)
+        v_ang_from_line = self.angleDiff(self.v_asv[2] - line_angle)
 
         v_course = math.sqrt(self.v_asv[0]**2 + self.v_asv[1]**2)
         v_x = v_course * math.cos(v_ang_from_line) # this v_x is along the line

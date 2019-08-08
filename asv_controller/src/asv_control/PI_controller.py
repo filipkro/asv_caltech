@@ -62,7 +62,7 @@ class PI_controller(Generic_Controller):
         e_heading = self.angleDiff(self.current[1] - self.state_asv[2])
         rospy.logdebug(e_heading)
 
-        if abs(e_heading) > math.pi/3 and current[0] > 0.1:
+        if abs(e_heading) > math.pi/3 and self.current[0] > 0.1:
             rospy.logdebug('FORSTA')
 
             '''turn robot back towards current if it points to much downward'''
@@ -91,11 +91,11 @@ class PI_controller(Generic_Controller):
                 ang_dir = self.v_asv[2]
 
             if abs(self.angleDiff(des_angle + math.pi - self.current[1])) \
-                                 < math.pi/2 and current[0] > 0.1:
+                                 < math.pi/2 and self.current[0] > 0.1:
                 '''if goal point is downstream go towards it by floating with current'''
-                e_ang = angleDiff(math.pi - des_angle + ang_dir)
+                e_ang = self.angleDiff(math.pi - des_angle + ang_dir)
                 v_ref = -v_ref/2
-                print(e_ang)
+                print("angle error " ,e_ang)
             else:
                 e_ang = self.angleDiff(des_angle - ang_dir)
 

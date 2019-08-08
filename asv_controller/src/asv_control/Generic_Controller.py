@@ -10,7 +10,8 @@ from abc import abstractmethod
 class Generic_Controller:
     
     def __init__(self, state_asv=None, state_ref=None, v_asv=None, \
-            wayPoints=None, target_index=0, destReached=True, current=None):
+            wayPoints=None, target_index=0, destReached=True, current=None, \
+                controller=None):
         # need to instantiate member like this for mutable member        
         if state_asv == None:        
             self.state_asv = [0,0,0]
@@ -30,6 +31,15 @@ class Generic_Controller:
         self.wayPoints = []
         self.destReached = True
         self.current = [0,0]
+        
+        # help pass data from the previous controller
+        if controller != None:
+            self.state_asv = controller.state_asv
+            self.state_ref = controller.state_ref
+            self.target_index = controller.target_index
+            self.wayPoints = controller.target_index
+            self.wayPoints = controller.wayPoints
+            self.current = controller.current
         
         # Control Parameters (specific to class)
 
