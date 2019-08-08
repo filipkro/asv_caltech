@@ -115,15 +115,21 @@ class Transect(State):
         self.p1 = GPS_data()
         self.p2 = GPS_data()
 
+
         self.ranges = ranges
         self.lidar_inc = lidar_inc
 
         # calculate transect once upon initialization
         current = self.controller.current # fix the averaging
         current_angle = current[1]
-        print(current_angle)
+
         [self.p1, self.p2] = self.calculate_transect(current_angle)
-        self.controller.wayPoints = [self.p1, self.p2]
+
+
+        # IMPORTANT: Transect state disregard target_index, wayPoints information 
+        # from the top controller. It instead has its own
+        self.target_index = 1 
+        self.wayPoints = [self.p1, self.p2]
 
     def on_event(self, event):
         self.run_time = rospy.get_param('/transect/run_time', 120.0)
@@ -140,9 +146,9 @@ class Transect(State):
             self.direction = not self.direction
             self.transect_cnt += 1
             if (self.direction):
-                self.controller.target_index = 1
+                self.target_index = 0
             else:
-                self.controller.target_index = 0
+                self.target_index = 1
             return self
         else:
             return self
@@ -151,7 +157,10 @@ class Transect(State):
     def calc_control(self):
         '''remember to update the controller before calling this'''
         #print('controller wp' , self.controller.wayPoints)
-        
+        self.controller.wayPoints = self.wayPoints
+        self.controller.target_index = self.target_index
+        print(self.controller.target_index)
+        print(self.direction)
         return self.controller.calc_control()
 
     def get_distance(self, ang, nbr_of_points=5):
