@@ -34,10 +34,10 @@ class Smart_LiDAR_Controller(Generic_Controller):
 
     def calc_control(self):
         # Update the controller
+        # Important some controllers might use their own info, such as Transect
         self.state.update_controller_var(self.state_asv, self.state_ref, \
                 self.v_asv, self.target_index, self.wayPoints, self.current)
         self.state.controller.destinationReached(self.destReached)
-
         # state transition
         self.state = self.state.on_event('Run')
         self.state.update_lidar(self.ranges, self.lidar_inc)
@@ -82,9 +82,10 @@ class Hold(State):
         State.__init__(self)
         self.controller = PI_controller.PI_controller()
         self.start_time = rospy.get_rostime()
-        self.waitTime = rospy.get_param('/wait_time', 5.0)
+        self.waitTime = rospy.get_param('/hold/wait_time', 5.0)
 
     def on_event(self, event):
+        self.waitTime = rospy.get_param('/hold/wait_time', 5.0)
         if (rospy.get_rostime() - self.start_time).to_sec() > self.waitTime:
             return Transect(last_controller=self.controller, ranges=self.ranges,
                                 lidar_inc=self.lidar_inc)
@@ -105,11 +106,12 @@ class Transect(State):
         self.controller = transect_controller.Transect_controller(controller=last_controller)
 
         self.start_time = rospy.get_rostime()
-        self.run_time = 60.0
+        self.run_time = rospy.get_param('/transect/run_time', 120.0)
+        self.max_transect = rospy.get_param('/transect/max_transect', 5)
+        self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
         self.transect_cnt = 0
-        self.max_transect = 5
         self.transect_time_ref = 5.0
-        self.direction = False #true - look at shore to the left, false - look at shore to the right
+        self.direction = False #False - look at shore to the left, True-look at shore to the right
         self.p1 = GPS_data()
         self.p2 = GPS_data()
 
@@ -124,6 +126,9 @@ class Transect(State):
         self.controller.wayPoints = [self.p1, self.p2]
 
     def on_event(self, event):
+        self.run_time = rospy.get_param('/transect/run_time', 120.0)
+        self.max_transect = rospy.get_param('/transect/max_transect', 5)
+
         if event == 'transect_time_elapsed' or event == 'num_transected_reached':
             # deal with this later
             return Upstream()
@@ -201,7 +206,8 @@ class Transect(State):
         inc = self.lidar_inc
         wayPoints = self.controller.wayPoints
 
-        dist_th = rospy.get_param('dist_th', 3.0)
+        self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
+        dist_th = self.dist_th
 
         theta_p = self.controller.angleDiff(np.arctan2(wayPoints[0].y \
                             - wayPoints[1].y, wayPoints[0].x - wayPoints[1].x))
