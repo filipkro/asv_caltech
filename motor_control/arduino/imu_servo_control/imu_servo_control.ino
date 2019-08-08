@@ -84,6 +84,7 @@ Servo myservo;
 int servoVal = 1600; // default is straight
 
 void servo_callback(const std_msgs::UInt32& msg) {
+//  imu_pub.publish(&imu_msg);
   if (msg.data >= SERVO_MIN && msg.data <= SERVO_MAX) {
     myservo.writeMicroseconds(msg.data);
   } else {

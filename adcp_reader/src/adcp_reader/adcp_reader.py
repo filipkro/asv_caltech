@@ -164,7 +164,7 @@ def extract_data(all_data):
     variable_offset = offsets[1]
 
     transducer_depth = int(''.join(reversed(all_data[variable_offset+14:variable_offset+16])).encode('hex'),16) #1 dm
-    heading = int(''.join(reversed(all_data[variable_offset+18:variable_offset+20])).encode('hex'),16) # degree
+    heading = s16(int(''.join(reversed(all_data[variable_offset+18:variable_offset+20])).encode('hex'),16)) # degree
     pitch = s16(int(''.join(reversed(all_data[variable_offset+22:variable_offset+24])).encode('hex'),16)) # degree
     roll = s16(int(''.join(reversed(all_data[variable_offset+20:variable_offset+22])).encode('hex'),16)) # degree
     salinity = int(''.join(reversed(all_data[variable_offset+24:variable_offset+26])).encode('hex'),16) # 0 to 40 ppm
