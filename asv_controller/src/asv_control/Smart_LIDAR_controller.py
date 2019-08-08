@@ -105,7 +105,7 @@ class Transect(State):
         self.controller = transect_controller.Transect_controller(controller=last_controller)
         
         self.start_time = rospy.get_rostime()
-        self.run_time = 60.0
+        self.run_time = 120.0
         self.transect_cnt = 0
         self.max_transect = 5
         self.transect_time_ref = 5.0
@@ -119,9 +119,13 @@ class Transect(State):
         # calculate transect once upon initialization
         current = self.controller.current # fix the averaging
         current_angle = current[1]
-        print(current_angle)
         [self.p1, self.p2] = self.calculate_transect(current_angle)
         self.controller.wayPoints = [self.p1, self.p2]
+
+        # IMPORTANT: Transect state disregard target_index, wayPoints information 
+        # from the top controller. It instead has its own
+        self.target_index = 1 
+        self.wayPoints = [self.p1, self.p2]
 
     def on_event(self, event):
         if event == 'transect_time_elapsed' or event == 'num_transected_reached':
@@ -131,13 +135,12 @@ class Transect(State):
                                       or self.transect_cnt > self.max_transect:
             return Home()
         elif self.too_close(self.direction):
-            print('?')            
             self.direction = not self.direction
             self.transect_cnt += 1
             if (self.direction):
-                self.controller.target_index = 1
+                self.target_index = 0
             else:
-                self.controller.target_index = 0            
+                self.target_index = 1            
             return self
         else:
             return self
@@ -145,7 +148,11 @@ class Transect(State):
 
     def calc_control(self):
         '''remember to update the controller before calling this'''
-        #print('controller wp' , self.controller.wayPoints)
+        
+        # transect calculate its own waypoints and targetIndex here
+        self.controller.wayPoints =self.wayPoints
+        self.controller.target_index = self.target_index
+
         return self.controller.calc_control()
 
     def get_distance(self, ang, nbr_of_points=5):
@@ -159,7 +166,7 @@ class Transect(State):
         nbr = int(math.floor(nbr_of_points/2))
         inc = lidar_inc
 
-        index = int((self.controller.angleDiff(state_asv[2] - ang) \
+        index = int((self.controller.angleDiff(ang - state_asv[2] ) \
                                                     + math.pi)/inc)
         range_sum = ranges[index]
         for i in range(1,nbr+1):
