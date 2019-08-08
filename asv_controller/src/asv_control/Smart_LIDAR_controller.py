@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #state.py
-#using this guy's design 
+#using this guy's design
 # https://dev.to/karn/building-a-simple-state-machine-in-python
 import rospy
 from state import State # state machine
@@ -37,18 +37,18 @@ class Smart_LiDAR_Controller(Generic_Controller):
         self.state.update_controller_var(self.state_asv, self.state_ref, \
                 self.v_asv, self.target_index, self.wayPoints, self.current)
         self.state.controller.destinationReached(self.destReached)
-        
-        # state transition       
+
+        # state transition
         self.state = self.state.on_event('Run')
         self.state.update_lidar(self.ranges, self.lidar_inc)
-        
+
         return self.state.calc_control()
 
 ########## Specific states ############
 
 class Start(State):
     ''' This initial state of the controller drives the robot to a designated
-        point ''' 
+        point '''
     def __init__(self):
         State.__init__(self)
         self.controller = PI_controller.PI_controller()
@@ -65,17 +65,17 @@ class Start(State):
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
         dist = math.sqrt((state_ref[0] - state_asv[0])**2 + (state_ref[1] - \
                          state_asv[1])**2)
-        
+
         if dist < DIST_THRESHOLD:
             return Hold()
         else:
             return self
-    
+
     def calc_control(self):
         '''remember to update the controller before calling this'''
         return self.controller.calc_control()
 
-    
+
 class Hold(State):
     '''Hold at the point until the asv figures out the current'''
     def __init__(self):
@@ -94,7 +94,7 @@ class Hold(State):
     def calc_control(self):
         '''remember to update the controller before calling this'''
         self.controller.destinationReached(True)
-        self.controller.state_ref = self.controller.state_asv
+        # self.controller.state_ref = self.controller.state_asv
         return self.controller.calc_control()
 
 class Transect(State):
@@ -103,7 +103,7 @@ class Transect(State):
     def __init__(self, last_controller=None, ranges=None, lidar_inc=None):
         State.__init__(self)
         self.controller = transect_controller.Transect_controller(controller=last_controller)
-        
+
         self.start_time = rospy.get_rostime()
         self.run_time = 60.0
         self.transect_cnt = 0
@@ -112,7 +112,7 @@ class Transect(State):
         self.direction = False #true - look at shore to the left, false - look at shore to the right
         self.p1 = GPS_data()
         self.p2 = GPS_data()
-        
+
         self.ranges = ranges
         self.lidar_inc = lidar_inc
 
@@ -131,13 +131,13 @@ class Transect(State):
                                       or self.transect_cnt > self.max_transect:
             return Home()
         elif self.too_close(self.direction):
-            print('?')            
+            print('?')
             self.direction = not self.direction
             self.transect_cnt += 1
             if (self.direction):
                 self.controller.target_index = 1
             else:
-                self.controller.target_index = 0            
+                self.controller.target_index = 0
             return self
         else:
             return self
@@ -159,7 +159,7 @@ class Transect(State):
         nbr = int(math.floor(nbr_of_points/2))
         inc = lidar_inc
 
-        index = int((self.controller.angleDiff(state_asv[2] - ang) \
+        index = int(self.controller.angleDiff(ang - state_asv[2] \
                                                     + math.pi)/inc)
         range_sum = ranges[index]
         for i in range(1,nbr+1):
@@ -175,10 +175,10 @@ class Transect(State):
              theta_c: current angle (float) in global frame
            Output:
              [state, state]: two points on the line normal to theta_c '''
-        state_asv = self.controller.state_asv 
+        state_asv = self.controller.state_asv
         point1 = GPS_data()
         point2 = GPS_data()
-        
+
         # sample cerain number of points from the sides of the current angle
         distL = self.get_distance(theta_c + math.pi/2, 21)
         #print('distL', distL)
@@ -201,7 +201,7 @@ class Transect(State):
         ''' Compares distance to shore on either right or left side to the threshold.
             If the number of points exceeds some number, turn around '''
         state_asv = self.controller.state_asv
-        ranges = self.ranges        
+        ranges = self.ranges
         inc = self.lidar_inc
         wayPoints = self.controller.wayPoints
 
@@ -236,6 +236,12 @@ class Transect(State):
 
         return len(close[0]) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
 
+class Middle(State):
+    '''Move boat to middle of the river before going upstream'''
+    def __init__(self):
+        State.__init__(self)
+        self.controller = transect_controller.Transect_controller()
+
 
 class Upstream(State):
     '''Move upstream against the current'''
@@ -262,9 +268,3 @@ class Home(State):
             return Start()
         else:
             return self
-
-
-
-
-
-
