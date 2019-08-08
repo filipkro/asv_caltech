@@ -142,6 +142,7 @@ def navGoal_callb(msg):
 def switchControl():
     '''Choose the right controller'''
     controller_type = rospy.get_param('/nav_mode', 'Waypoint')
+    print(controller_type)
     if (controller_type == "Waypoint"):
         return PI_controller
     elif (controller_type == "Transect"):

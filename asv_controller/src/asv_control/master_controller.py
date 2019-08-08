@@ -98,7 +98,7 @@ def updateTarget():
 
     DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
     control_mode = rospy.get_param('/nav_mode', 'Waypoint')
-    # if we're close to our target then do different things depends on which 
+    # if we're close to our target then do different things depends on which
     # controller we're running
     if (dist_2_target <= DIST_THRESHOLD and control_mode != 'Smart'):
         if control_mode == 'Waypoint':
@@ -225,7 +225,7 @@ def main():
         controller = switchControl()
         rospy.logdebug('Target Index '+ str(target_index))
         trgt_updated = updateTarget()
-
+        print(rospy.get_param('/nav_mode'))
         if run or trgt_updated:
             controller.destinationReached(not trgt_updated)
             controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)

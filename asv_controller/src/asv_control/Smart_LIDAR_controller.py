@@ -41,7 +41,7 @@ class Smart_LiDAR_Controller(Generic_Controller):
         # state transition
         self.state = self.state.on_event('Run')
         self.state.update_lidar(self.ranges, self.lidar_inc)
-
+        print('STATE: ', self.state)
         return self.state.calc_control()
 
 ########## Specific states ############
@@ -151,6 +151,7 @@ class Transect(State):
     def calc_control(self):
         '''remember to update the controller before calling this'''
         #print('controller wp' , self.controller.wayPoints)
+        
         return self.controller.calc_control()
 
     def get_distance(self, ang, nbr_of_points=5):
