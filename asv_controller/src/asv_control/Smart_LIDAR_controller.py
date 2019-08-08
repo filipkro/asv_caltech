@@ -241,7 +241,15 @@ class Middle(State):
     def __init__(self):
         State.__init__(self)
         self.controller = transect_controller.Transect_controller()
+        dist_calc
 
+    def on_event(self, event):
+        if event == 'next_point_reached':
+            return Transect()
+        elif event == 'go_home':
+            return Home()
+        else:
+            return self
 
 class Upstream(State):
     '''Move upstream against the current'''
