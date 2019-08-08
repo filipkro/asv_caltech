@@ -397,18 +397,18 @@ def middle():
     global state_asv, state_ref, v_asv, target_index, wayPoints, current, \
             STATE, ADCP_mean, direction, transect_cnt, state_pub, newTransect
     state_pub.publish(STATE)
-    
+
     if destinationReached():
         dist_upstream = rospy.get_param('/dist_upstream', 5.0)
-        state_ref[0] = dist_upstream * math.cos(ADCP_mean[2])
-        state_ref[1] = dist_upstream * math.sin(ADCP_mean[2])
+        state_ref[0] = state_asv[0] + dist_upstream * math.cos(ADCP_mean[2])
+        state_ref[1] = state_asv[1] + dist_upstream * math.sin(ADCP_mean[2])
         STATE = 'UPSTREAM'
     else:
         if direction:
             target_index = 1
         else:
             target_index = 0
-            
+
         transect_controller_old.update_variable(state_asv, state_ref, v_asv,
                             target_index, wayPoints, current)
         publish_cmds(transect_controller_old)
