@@ -328,7 +328,6 @@ def hold():
     if (rospy.get_rostime() - start_time).to_sec() > waitTime: # and len(ranges) != 0:
         #calculate two points on the line normal to the water current
         wayPoints = calculate_transect(ADCP_mean[2])
-        PI_controller_old.destinationReached(False)
         STATE = 'TRANSECT'
         # STATE = 'HOLD' # just for testing purposes
         rospy.set_param('/ADCP/reset', True)
@@ -348,6 +347,7 @@ def transect():
         transect_cnt += 1
         if lawnmower: # and transect_cnt > 2:
             STATE = 'MIDDLE'
+            PI_controller_old.destinationReached(False)
             print(STATE)
             print('state_asv, line 350: ', state_asv)
             print('state_ref, line 351: ', state_ref)
@@ -397,16 +397,25 @@ def middle():
     global state_asv, state_ref, v_asv, target_index, wayPoints, current, \
             STATE, ADCP_mean, direction, transect_cnt, state_pub, newTransect
     state_pub.publish(STATE)
-    destReached = destinationReached()
-    if destReached:
+    
+    if destinationReached():
         dist_upstream = rospy.get_param('/dist_upstream', 5.0)
         state_ref[0] = dist_upstream * math.cos(ADCP_mean[2])
         state_ref[1] = dist_upstream * math.sin(ADCP_mean[2])
         STATE = 'UPSTREAM'
-
-    PI_controller_old.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
+    else:
+        if direction:
+            target_index = 1
+        else:
+            target_index = 0
+            
+        transect_controller_old.update_variable(state_asv, state_ref, v_asv,
+                            target_index, wayPoints, current)
+        publish_cmds(transect_controller_old)
+    # print('destReached: ', PI_controller_old.destReached)
+    # PI_controller_old.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
     # PI_controller_old.destinationReached(destReached)
-    publish_cmds(PI_controller_old)
+        # publish_cmds(PI_controller_old)
 
 
 
