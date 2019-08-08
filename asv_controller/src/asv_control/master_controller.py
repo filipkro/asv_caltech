@@ -55,9 +55,32 @@ def IMU_callb(msg):
     global state_asv
     state_asv[2] = msg.data
 
-def ADCP_callb(msg):
+def ADCP_callb(msg): # simulation, not accurate
     global current
     current = msg.data
+
+def ADCP_callb2(msg):
+    global current, ADCP_mean
+    data = msg.data
+    calc_mean = rospy.get_param('ADCP/mean', False)
+
+    v_bt = np.array([s16(v) for v in data[7:11]]) # bottom track velocity (v of boat?)
+    v_rel_surface = np.array([s16(v) for v in data[11:15]]) # relative surface velocity
+    v_surface = v_rel_surface - v_bt
+    v_angle = math.atan2(v_surface[1], v_surface[0])
+
+    adcp_offset = rospy.get_param('/ADCP/angleOff', 135)
+    v_angle = angleDiff(v_angle+adcp_offset)
+
+    if calc_mean:
+        if rospy.get_param('/ADCP/reset', False):
+            ADCP_mean = [0.0, 0.0, 0.0] # [sum of average, num_samples, mean]
+            rospy.set_param('/ADCP/reset', False)
+
+        ADCP_mean[0] += v_angle
+        ADCP_mean[1] += 1
+        ADCP_mean[2] = ADCP_mean[0]/ADCP_mean[1]
+
 
 def lidar_callb(msg):
     global ranges, lidar_inc
