@@ -30,7 +30,8 @@ class Smart_LiDAR_Controller(Generic_Controller):
     def update_lidar(self, ranges, inc):
         '''get lidar readings'''
         self.ranges = ranges
-        self.lidar_inc = inc
+        self.lidar_inc = 2*math.pi/400
+        print('lidar_inc (in update_lidar) ', self.lidar_inc)
 
     def calc_control(self):
         # Update the controller
@@ -106,15 +107,19 @@ class Hold(State):
 class Transect(State):
     '''Perform transect on the spot'''
 
-    def __init__(self, last_controller=None, ranges=None, lidar_inc=None, transect = True, dir=False):
+    def __init__(self, last_controller=None, ranges=None, lidar_inc=None, transect = True, dir=False, trans_cnt=None):
         State.__init__(self)
         self.controller = transect_controller.Transect_controller(controller=last_controller)
-
-        self.start_time = rospy.get_rostime()
-        self.run_time = rospy.get_param('/transect/run_time', 120.0)
+        if trans_cnt == None:
+            self.transect_cnt = 0
+            self.start_time = rospy.get_rostime()
+        else:
+            self.transect_cnt = trans_cnt[0]
+            self.start_time = trans_cnt[1]
+        self.run_time = rospy.get_param('/transect/run_time', 300.0)
         self.max_transect = rospy.get_param('/transect/max_transect', 5)
         self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
-        self.transect_cnt = 0
+        
         self.transect_time_ref = 5.0
         self.direction = dir #False - look at shore to the left, True-look at shore to the right
         print('direction (in transect) ', self.direction)
@@ -133,27 +138,32 @@ class Transect(State):
             [self.p1, self.p2] = self.calculate_transect(current_angle)
             # IMPORTANT: Transect state disregard target_index, wayPoints information
             # from the top controller. It instead has its own
-            self.target_index = 1
+            if self.direction:
+                self.target_index = 0
+            else:
+                self.target_index = 1
             self.wayPoints = [self.p1, self.p2]
 
     def on_event(self, event):
-        self.run_time = rospy.get_param('/transect/run_time', 200.0)
+        self.run_time = rospy.get_param('/transect/run_time', 100.0)
         self.max_transect = rospy.get_param('/transect/max_transect', 5)
         self.upstream = rospy.get_param('/upstream', True)
         print('direction (in on_event) ', self.direction)
-        if (rospy.get_rostime() - self.start_time).to_sec() > self.run_time \
-                                      or self.transect_cnt > self.max_transect:
+        if (rospy.get_rostime() - self.start_time).to_sec() > self.run_time:
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
         elif self.too_close(self.direction):
             print('?')
             self.direction = not self.direction
             self.transect_cnt += 1
+            if self.transect_cnt > self.max_transect:
+                return Home(self.ranges, self.controller.state_asv, self.controller.current)
             if (self.direction):
                 self.target_index = 0
             else:
                 self.target_index = 1
             if self.upstream:
-                return Upstream(self.ranges, self.controller.state_asv, self.controller.current, self.direction)
+                trans_cnt = [self.transect_cnt, self.start_time]
+                return Upstream(self.ranges, self.controller.state_asv, self.controller.current, self.direction, trans_cnt)
             else:
                 return self
         else:
@@ -177,9 +187,10 @@ class Transect(State):
         state_asv = self.controller.state_asv
         ranges = self.ranges
         lidar_inc = self.lidar_inc
-
+        print('ranges[350]', ranges[350])
         nbr = int(math.floor(nbr_of_points/2))
         inc = lidar_inc
+        print('angle to wall ', ang)
         print('theta ', state_asv[2])
         index = int((self.controller.angleDiff(ang - state_asv[2]) \
                                                     + math.pi)/inc) % len(ranges)
@@ -319,47 +330,81 @@ class Transect(State):
 
 class Upstream(State):
     '''Move upstream to point in the middle a specified distance away, then do new transect there'''
-    def __init__(self, lidar_readings, last_state, current, dir):
+    def __init__(self, lidar_readings, last_state, current, dir, trans_cnt):
         State.__init__(self)
         self.ranges = lidar_readings
         self.controller = PI_controller.PI_controller()
         self.controller.state_asv = last_state
         self.controller.current = current
         self.direction = dir
+        self.trans_cnt = trans_cnt
         print('direction ', dir)
-        self.dist_calc = Transect(last_controller=self.controller, ranges=self.ranges, \
-                            lidar_inc=self.lidar_inc, transect=False)
+        # self.dist_calc = Transect(last_controller=self.controller, ranges=self.ranges, \
+                            # lidar_inc=self.lidar_inc, transect=False)
         self.update_ref()
 
     def update_ref(self):
         '''Update reference point, middle of river a specified distance downstream'''
-        self.dist_calc.ranges = self.ranges
+        # self.dist_calc.ranges = self.ranges
+        # self.dist_calc.controller.state_asv = self.controller.state_asv
         # print('current ', self.controller.current[1])
-        d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
+        # d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
         # print('dLeft ', d_left)
-        d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
-        # print('dRight ', d_right)
+        # d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
+        print('current ', self.controller.current[1])
+        d_left = self.get_distance(self.controller.current[1] + math.pi/2) #use average instead
+        print('dLeft ', d_left)
+        d_right = self.get_distance(self.controller.current[1] - math.pi/2) #use average instead
+        print('dRight ', d_right)
         dist_mid = (d_right - d_left)/2
-        # print('dist_mid ', dist_mid)
+        print('dist_mid ', dist_mid)
         theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
-        # print('theta_p ', theta_p)
+        print('theta_p ', theta_p)
         dist_upstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_upstream', 5.0)
-        # print('dist_upstream ', dist_upstream)
-        theta_dest = theta_p + math.atan2(dist_upstream, dist_mid)
-        # print('theta_dest ', theta_dest)
+        print('dist_upstream ', dist_upstream)
+        theta_dest = self.controller.angleDiff(theta_p + np.sign(dist_upstream*dist_mid)*(math.atan2(abs(dist_upstream), abs(dist_mid))))
+        print('theta_dest ', theta_dest)
         dist = math.sqrt(dist_mid**2 + dist_upstream**2)
-        # print('dist ', dist)
+        print('dist ', dist)
         self.xref = self.controller.state_asv[0] + dist * math.cos(theta_dest)
         self.yref = self.controller.state_asv[1] + dist * math.sin(theta_dest)
+
+    def get_distance(self, ang, nbr_of_points=5):
+        '''Getting the mean distance to the specified angle
+            ang: angle to look for shortest range
+            nbr_of_points: number of readings to average over'''
+        state_asv = self.controller.state_asv
+        ranges = self.ranges
+        lidar_inc = 2*math.pi / len(ranges)
+        print('inc', lidar_inc)
+        print('ranges[350]', ranges[350])
+        nbr = int(math.floor(nbr_of_points/2))
+        print('angle to wall ', ang)
+        print('theta ', state_asv[2])
+        index = int((self.controller.angleDiff(ang - state_asv[2]) \
+                                                    + math.pi)/lidar_inc) % len(ranges)
+        print('angleDiff ', self.controller.angleDiff(ang - state_asv[2]))
+        print('everything excpt mod', int((self.controller.angleDiff(ang - state_asv[2]) + math.pi)/lidar_inc))
+        print('index ', index)
+        range_sum = ranges[index]
+        for i in range(1,nbr+1):
+            range_sum += math.cos(lidar_inc*i)*(ranges[(index+i) % len(ranges)] \
+                            + ranges[(index-i) % len(ranges)])
+
+        # return mean of nbr_of_points (uneven) closest points
+        return range_sum/(2*nbr+1)
 
     def on_event(self, event):
         dist = math.sqrt((self.controller.state_ref[0] - self.controller.state_asv[0])**2 + \
                         (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
+        run_time = rospy.get_param('/transect/run_time', 100.0)
+        if (rospy.get_rostime() - self.trans_cnt[1]).to_sec() > run_time:
+            return Home(self.ranges, self.controller.state_asv, self.controller.current)
         if dist < DIST_THRESHOLD:
             print('direction ', self.direction)
             return Transect(last_controller=self.controller, ranges=self.ranges,
-                                lidar_inc=self.lidar_inc, dir=self.direction)
+                                lidar_inc=self.lidar_inc, dir=self.direction, trans_cnt=self.trans_cnt)
         else:
             return self
 
@@ -390,15 +435,18 @@ class Home(State):
             self.yref = self.home[1]
         else:
             self.dist_calc.ranges = self.ranges
-            d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
-            d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
+            # d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
+            # d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
+            d_left = self.get_distance(self.controller.current[1] + math.pi/2) #use average instead
+            d_right = self.get_distance(self.controller.current[1] - math.pi/2) #use average instead
             dist_mid = (d_right - d_left)/2
             theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
             dist_downstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_downstream', 5.0)
-            theta_dest = theta_p - math.atan2(dist_downstream, dist_mid)
+            theta_dest = self.controller.angleDiff(theta_p - np.sign(dist_downstream*dist_mid)* math.atan2(abs(dist_downstream), abs(dist_mid)))
             dist = math.sqrt(dist_mid**2 + dist_downstream**2)
             self.xref = self.controller.state_asv[0] + dist * math.cos(theta_dest)
             self.yref = self.controller.state_asv[1] + dist * math.sin(theta_dest)
+
 
     def on_event(self, event):
         theta_home = self.controller.state_asv[2] - math.atan2(self.home[1] - self.controller.state_asv[1], \
@@ -417,6 +465,31 @@ class Home(State):
             return Start()
         else:
             return self
+
+    def get_distance(self, ang, nbr_of_points=5):
+        '''Getting the mean distance to the specified angle
+            ang: angle to look for shortest range
+            nbr_of_points: number of readings to average over'''
+        state_asv = self.controller.state_asv
+        ranges = self.ranges
+        lidar_inc = 2*math.pi / len(ranges)
+        print('inc', lidar_inc)
+        print('ranges[350]', ranges[350])
+        nbr = int(math.floor(nbr_of_points/2))
+        print('angle to wall ', ang)
+        print('theta ', state_asv[2])
+        index = int((self.controller.angleDiff(ang - state_asv[2]) \
+                                                    + math.pi)/lidar_inc) % len(ranges)
+        print('angleDiff ', self.controller.angleDiff(ang - state_asv[2]))
+        print('everything excpt mod', int((self.controller.angleDiff(ang - state_asv[2]) + math.pi)/lidar_inc))
+        print('index ', index)
+        range_sum = ranges[index]
+        for i in range(1,nbr+1):
+            range_sum += math.cos(lidar_inc*i)*(ranges[(index+i) % len(ranges)] \
+                            + ranges[(index-i) % len(ranges)])
+
+        # return mean of nbr_of_points (uneven) closest points
+        return range_sum/(2*nbr+1)
 
     def calc_control(self):
         '''remember to update the controller before calling this'''
