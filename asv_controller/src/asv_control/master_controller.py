@@ -190,9 +190,7 @@ def navGoal_callb(msg):
     state_ref[0] = point.x
     state_ref[1] = point.y
     state_ref[2] = point.z
-    #print("WP added! ", point)
-    #print("state ref:", state_ref)
-    #print(wayPoints)
+
 
 def switchControl():
     '''Choose the right controller'''

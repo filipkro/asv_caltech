@@ -41,8 +41,6 @@ class PI_controller(Generic_Controller):
         self.VEL_THRESHOLD = rospy.get_param('/v_threshold', 0.2)
         v_ref = self.V_REF
 
-        print('state_ref (in PI): ', self.state_ref)
-
         '''transform velocities to robots coordinate system'''
         rot = np.array([[np.cos(self.state_asv[2]), np.sin(self.state_asv[2])], \
             [-np.sin(self.state_asv[2]), np.cos(self.state_asv[2])]])
@@ -97,7 +95,7 @@ class PI_controller(Generic_Controller):
                 '''if goal point is downstream go towards it by floating with current'''
                 e_ang = self.angleDiff(math.pi - des_angle + ang_dir)
                 v_ref = -v_ref/2
-                print("angle error " ,e_ang)
+                rospy.logdebug("angle error " + str(e_ang))
             else:
                 e_ang = self.angleDiff(des_angle - ang_dir)
 
@@ -107,11 +105,10 @@ class PI_controller(Generic_Controller):
 
         e_v = v_ref - vel_robot[0,0]
         rospy.logdebug("e_v " + str(e_v))
+        rospy.logdebug('e_ang (in PI): ' + str(e_ang))
         u_rudder = self.rudder_control(e_ang)
         u_thrust = self.thrust_control(e_v)
 
-        print('e_ang (in PI): ', e_ang)
-        print('e_v (in PI):', e_v)
         ### extension for using velocity to target
         # check which direction we're point at #
         # des_angle = math.atan2(state_ref[1] - state_asv[1], state_ref[0] - state_asv[0])

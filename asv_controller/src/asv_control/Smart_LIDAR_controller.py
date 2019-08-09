@@ -11,12 +11,7 @@ import math
 import tf
 import numpy as np
 from Generic_Controller import Generic_Controller
-from gps_reader.msg import GPS_data, GPS_WayPoints
-from motor_control.msg import MotorCommand
-from geometry_msgs.msg import PointStamped, PoseStamped
-from std_msgs.msg import Float32, Float32MultiArray, String, Int64MultiArray
-from sensor_msgs.msg import LaserScan
-from visualization_msgs.msg import Marker, MarkerArray # for simulation
+from geometry_msgs.msg import Point
 
 
 ########## Smart LiDAR controller state machine #######
@@ -120,8 +115,8 @@ class Transect(State):
 
         self.transect_time_ref = 5.0
         self.direction = dir #False - look at shore to the left, True-look at shore to the right
-        self.p1 = GPS_data()
-        self.p2 = GPS_data()
+        self.p1 = Point()
+        self.p2 = Point()
 
         self.ranges = ranges
         self.lidar_inc = lidar_inc
@@ -192,8 +187,8 @@ class Transect(State):
            Output:
              [state, state]: two points on the line normal to theta_c '''
         state_asv = self.controller.state_asv
-        point1 = GPS_data()
-        point2 = GPS_data()
+        point1 = Point()
+        point2 = Point()
 
         # sample cerain number of points from the sides of the current angle
         distL = self.get_distance(theta_c + math.pi/2, 21)
@@ -260,11 +255,11 @@ class Upstream(State):
         self.update_ref()
 
     def update_ref(self):
-        '''Update reference point, middle of river a specified distance downstream'''
+        '''Update reference point, middle (or fraction specified by rosparam) of river a specified distance downstream'''
         self.dist_calc.ranges = self.ranges
         d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
         d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
-        dist_mid = (d_right - d_left)/5
+        dist_mid = (d_right - d_left)/rospy.get_param('/waypoint_fraction', 2)
         theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
         dist_upstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_upstream', 5.0)
         theta_dest = self.controller.angleDiff(theta_p + np.sign(dist_upstream*dist_mid)*(math.atan2(abs(dist_upstream), abs(dist_mid))))
@@ -305,7 +300,7 @@ class Home(State):
         self.update_ref()
 
     def update_ref(self, go_home=False):
-        '''Update reference point, middle of river a specified distance downstream'''
+        '''Update reference point, middle (or fraction specified by rosparam) of river a specified distance downstream'''
         if go_home:
             self.xref = self.home[0]
             self.yref = self.home[1]
@@ -313,7 +308,7 @@ class Home(State):
             self.dist_calc.ranges = self.ranges
             d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
             d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
-            dist_mid = (d_right - d_left)/6
+            dist_mid = (d_right - d_left)/rospy.get_param('/waypoint_fraction', 2)
             theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
             dist_downstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_downstream', 5.0)
             theta_dest = self.controller.angleDiff(theta_p - np.sign(dist_downstream*dist_mid)* math.atan2(abs(dist_downstream), abs(dist_mid)))
