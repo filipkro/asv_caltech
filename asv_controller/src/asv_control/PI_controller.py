@@ -41,6 +41,8 @@ class PI_controller(Generic_Controller):
         self.VEL_THRESHOLD = rospy.get_param('/v_threshold', 0.2)
         v_ref = self.V_REF
 
+        print('state_ref (in PI): ', self.state_ref)
+
         '''transform velocities to robots coordinate system'''
         rot = np.array([[np.cos(self.state_asv[2]), np.sin(self.state_asv[2])], \
             [-np.sin(self.state_asv[2]), np.cos(self.state_asv[2])]])

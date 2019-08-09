@@ -52,6 +52,8 @@ class Start(State):
     def __init__(self):
         State.__init__(self)
         self.controller = PI_controller.PI_controller()
+        self.xref = rospy.get_param('/start/x', 0.0)
+        self.yref = rospy.get_param('/start/y', 2.0)
 
     def on_event(self, event):
         '''
@@ -60,8 +62,7 @@ class Start(State):
         Output:
             state: (State) the next state
         '''
-        self.controller.state_ref[0] = rospy.get_param('/start/x', 0.0)
-        self.controller.state_ref[1] = rospy.get_param('start/y', 2.0)
+
         state_asv = self.controller.state_asv
         state_ref = self.controller.state_ref
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
@@ -75,6 +76,8 @@ class Start(State):
 
     def calc_control(self):
         '''remember to update the controller before calling this'''
+        self.controller.state_ref[0] = self.xref
+        self.controller.state_ref[1] = self.yref
         return self.controller.calc_control()
 
 
@@ -103,7 +106,7 @@ class Hold(State):
 class Transect(State):
     '''Perform transect on the spot'''
 
-    def __init__(self, last_controller=None, ranges=None, lidar_inc=None, transect = True):
+    def __init__(self, last_controller=None, ranges=None, lidar_inc=None, transect = True, dir=False):
         State.__init__(self)
         self.controller = transect_controller.Transect_controller(controller=last_controller)
 
@@ -113,7 +116,8 @@ class Transect(State):
         self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
         self.transect_cnt = 0
         self.transect_time_ref = 5.0
-        self.direction = False #False - look at shore to the left, True-look at shore to the right
+        self.direction = dir #False - look at shore to the left, True-look at shore to the right
+        print('direction (in transect) ', self.direction)
         self.p1 = GPS_data()
         self.p2 = GPS_data()
 
@@ -136,10 +140,10 @@ class Transect(State):
         self.run_time = rospy.get_param('/transect/run_time', 200.0)
         self.max_transect = rospy.get_param('/transect/max_transect', 5)
         self.upstream = rospy.get_param('/upstream', True)
-
+        print('direction (in on_event) ', self.direction)
         if (rospy.get_rostime() - self.start_time).to_sec() > self.run_time \
                                       or self.transect_cnt > self.max_transect:
-            return Home(self.ranges)
+            return Home(self.ranges, self.controller.state_asv, self.controller.current)
         elif self.too_close(self.direction):
             print('?')
             self.direction = not self.direction
@@ -149,7 +153,7 @@ class Transect(State):
             else:
                 self.target_index = 1
             if self.upstream:
-                return Upstream(self.ranges)
+                return Upstream(self.ranges, self.controller.state_asv, self.controller.current, self.direction)
             else:
                 return self
         else:
@@ -176,10 +180,10 @@ class Transect(State):
 
         nbr = int(math.floor(nbr_of_points/2))
         inc = lidar_inc
-        print('inc:', lidar_inc)
-        print('len: ', len(ranges))
+        print('theta ', state_asv[2])
         index = int((self.controller.angleDiff(ang - state_asv[2]) \
                                                     + math.pi)/inc) % len(ranges)
+        print('index ', index)
         range_sum = ranges[index]
         for i in range(1,nbr+1):
             range_sum += math.cos(inc*i)*(ranges[(index+i) % len(ranges)] \
@@ -315,51 +319,65 @@ class Transect(State):
 
 class Upstream(State):
     '''Move upstream to point in the middle a specified distance away, then do new transect there'''
-    def __init__(self, lidar_readings):
+    def __init__(self, lidar_readings, last_state, current, dir):
         State.__init__(self)
         self.ranges = lidar_readings
         self.controller = PI_controller.PI_controller()
+        self.controller.state_asv = last_state
+        self.controller.current = current
+        self.direction = dir
+        print('direction ', dir)
         self.dist_calc = Transect(last_controller=self.controller, ranges=self.ranges, \
                             lidar_inc=self.lidar_inc, transect=False)
-        self.home = [rospy.get_param('/home/x', 0.0), rospy.get_param('/home/y', 0.0)]
         self.update_ref()
 
     def update_ref(self):
         '''Update reference point, middle of river a specified distance downstream'''
         self.dist_calc.ranges = self.ranges
+        # print('current ', self.controller.current[1])
         d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
+        # print('dLeft ', d_left)
         d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
+        # print('dRight ', d_right)
         dist_mid = (d_right - d_left)/2
+        # print('dist_mid ', dist_mid)
         theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
+        # print('theta_p ', theta_p)
         dist_upstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_upstream', 5.0)
+        # print('dist_upstream ', dist_upstream)
         theta_dest = theta_p + math.atan2(dist_upstream, dist_mid)
+        # print('theta_dest ', theta_dest)
         dist = math.sqrt(dist_mid**2 + dist_upstream**2)
-        self.controller.state_ref[0] = self.controller.state_asv[0] + dist * math.cos(theta_dest)
-        self.controller.state_ref[1] = self.controller.state_asv[1] + dist * math.sin(theta_dest)
-        print('calculated wp:', self.controller.state_ref)
+        # print('dist ', dist)
+        self.xref = self.controller.state_asv[0] + dist * math.cos(theta_dest)
+        self.yref = self.controller.state_asv[1] + dist * math.sin(theta_dest)
 
     def on_event(self, event):
         dist = math.sqrt((self.controller.state_ref[0] - self.controller.state_asv[0])**2 + \
                         (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
         if dist < DIST_THRESHOLD:
+            print('direction ', self.direction)
             return Transect(last_controller=self.controller, ranges=self.ranges,
-                                lidar_inc=self.lidar_inc)
+                                lidar_inc=self.lidar_inc, dir=self.direction)
         else:
             return self
 
     def calc_control(self):
         '''remember to update the controller before calling this'''
         #print('controller wp' , self.controller.wayPoints)
-        print('wp: ', self.controller.state_ref)
+        self.controller.state_ref[0] = self.xref
+        self.controller.state_ref[1] = self.yref
         return self.controller.calc_control()
 
 class Home(State):
     '''Go back to hem (home)! Hem sweet hem (home ljuva home).'''
-    def __init__(self, lidar_readings):
+    def __init__(self, lidar_readings, last_state, current):
         State.__init__(self)
         self.ranges = lidar_readings
         self.controller = PI_controller.PI_controller()
+        self.controller.state_asv = last_state
+        self.controller.current = current
         self.dist_calc = Transect(last_controller=self.controller, ranges=self.ranges, \
                             lidar_inc=self.lidar_inc, transect=False)
         self.home = [rospy.get_param('/home/x', 0.0), rospy.get_param('/home/y', 0.0)]
@@ -368,8 +386,8 @@ class Home(State):
     def update_ref(self, go_home=False):
         '''Update reference point, middle of river a specified distance downstream'''
         if go_home:
-            self.controller.state_ref[0] = self.home[0]
-            self.controller.state_ref[1] = self.home[1]
+            self.xref = self.home[0]
+            self.yref = self.home[1]
         else:
             self.dist_calc.ranges = self.ranges
             d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
@@ -379,8 +397,8 @@ class Home(State):
             dist_downstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_downstream', 5.0)
             theta_dest = theta_p - math.atan2(dist_downstream, dist_mid)
             dist = math.sqrt(dist_mid**2 + dist_downstream**2)
-            self.controller.state_ref[0] = self.controller.state_asv[0] + dist * math.cos(theta_dest)
-            self.controller.state_ref[1] = self.controller.state_asv[1] + dist * math.sin(theta_dest)
+            self.xref = self.controller.state_asv[0] + dist * math.cos(theta_dest)
+            self.yref = self.controller.state_asv[1] + dist * math.sin(theta_dest)
 
     def on_event(self, event):
         theta_home = self.controller.state_asv[2] - math.atan2(self.home[1] - self.controller.state_asv[1], \
@@ -403,6 +421,8 @@ class Home(State):
     def calc_control(self):
         '''remember to update the controller before calling this'''
         #print('controller wp' , self.controller.wayPoints)
+        self.controller.state_ref[0] = self.xref
+        self.controller.state_ref[1] = self.yref
         return self.controller.calc_control()
 
 class Finished(State):
