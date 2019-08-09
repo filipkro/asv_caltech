@@ -64,7 +64,7 @@ class PI_controller(Generic_Controller):
 
         if abs(e_heading) > math.pi/3 and self.current[0] > 0.1:
             rospy.logdebug('FORSTA')
-            v_ref = vel_robot[0,0] + 1.0
+            v_ref = vel_robot[0,0] + 0.5
             '''turn robot back towards current if it points to much downward'''
             e_ang = e_heading
         elif self.destReached:

@@ -60,6 +60,8 @@ class Start(State):
         Output:
             state: (State) the next state
         '''
+        self.controller.state_ref[0] = rospy.get_param('/start/x', 0.0)
+        self.controller.state_ref[1] = rospy.get_param('start/y', 2.0)
         state_asv = self.controller.state_asv
         state_ref = self.controller.state_ref
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
@@ -334,6 +336,7 @@ class Upstream(State):
         dist = math.sqrt(dist_mid**2 + dist_upstream**2)
         self.controller.state_ref[0] = self.controller.state_asv[0] + dist * math.cos(theta_dest)
         self.controller.state_ref[1] = self.controller.state_asv[1] + dist * math.sin(theta_dest)
+        print('calculated wp:', self.controller.state_ref)
 
     def on_event(self, event):
         dist = math.sqrt((self.controller.state_ref[0] - self.controller.state_asv[0])**2 + \
@@ -348,6 +351,7 @@ class Upstream(State):
     def calc_control(self):
         '''remember to update the controller before calling this'''
         #print('controller wp' , self.controller.wayPoints)
+        print('wp: ', self.controller.state_ref)
         return self.controller.calc_control()
 
 class Home(State):
