@@ -23,6 +23,7 @@ h = 0.2
 vref = 0.0
 ranges = []
 lidar_inc = 0.0
+ADCP_mean = [0.0, 0.0, 0.0] # [sum of average, num_samples, mean]
 
 # controllers
 smart_controller = Smart_LiDAR_Controller()
@@ -56,8 +57,17 @@ def IMU_callb(msg):
     state_asv[2] = msg.data
 
 def ADCP_callb(msg): # simulation, not accurate
-    global current
+    global current, ADCP_mean
     current = msg.data
+    calc_mean = rospy.get_param('ADCP/mean', False)
+    if calc_mean:
+        if rospy.get_param('/ADCP/reset', False):
+            ADCP_mean = [0.0, 0.0, 0.0] # [sum of average, num_samples, mean]
+            rospy.set_param('/ADCP/reset', False)
+
+        ADCP_mean[0] += v_angle
+        ADCP_mean[1] += 1
+        ADCP_mean[2] = ADCP_mean[0]/ADCP_mean[1]
 
 def ADCP_callb2(msg):
     global current, ADCP_mean
@@ -228,7 +238,7 @@ def main():
         print(rospy.get_param('/nav_mode'))
         if run or trgt_updated:
             controller.destinationReached(not trgt_updated)
-            controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)
+            controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)#, ADCP_mean)
             u_thrust, u_rudder = controller.calc_control()
             motor_cmd.port = u_thrust
             motor_cmd.strboard = u_thrust
@@ -242,5 +252,6 @@ def main():
 
         rospy.logdebug('MotorCmd ' + str(motor_cmd))
         ctrl_pub.publish(motor_cmd)
+        print('motorcmnd (in master):', motor_cmd)
 
         rate.sleep()

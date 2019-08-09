@@ -6,11 +6,11 @@ from Generic_Controller import Generic_Controller
 
 # inherited from the Generic Controller class
 # members:
-    # state_asv, state_ref, current, v_asv, wayPoints, target_index, 
+    # state_asv, state_ref, current, v_asv, wayPoints, target_index,
     # destReached
 # Functions:
-    # destinationReached 
-    # update_variable 
+    # destinationReached
+    # update_variable
     # angleDiff
 
 # note: for transect control, index can only go between 0 and 1
@@ -18,13 +18,13 @@ from Generic_Controller import Generic_Controller
 class Transect_controller(Generic_Controller):
     def __init__(self, controller=None):
         Generic_Controller.__init__(self, controller=controller)
-        
+
         # member specific to transect controller
         self.transect_p1 = None
         self.transect_p2 = None
-        self.last_point = None 
+        self.last_point = None
         self.v_update_count = 0 # update counters to slow down the update
-        self.ang_update_count = 0 
+        self.ang_update_count = 0
         self.last_u_nom = 0   # previous command
         self.last_v_des = 0   # previous desired speed
         self.last_ang_des = 0 # previous deisred angle
@@ -82,7 +82,7 @@ class Transect_controller(Generic_Controller):
     def vertical_speed_control(self):
         '''calculate current velocity toward the waypoint, increase or decrease u_nom'''
         global K_v, last_point, v_asv, state_asv
-        self.K_v = rospy.get_param('/transect/K_v', 10.0)
+        self.K_v = rospy.get_param('/transect/K_v', 50.0)
         self.K_t = rospy.get_param('/transect_thrust/K', 10.0)
 
         # Calculate drift away from the line
@@ -175,4 +175,3 @@ class Transect_controller(Generic_Controller):
             u_rudder = 1195
         rospy.logdebug("rudder " +  str(u_rudder))
         return u_rudder
-

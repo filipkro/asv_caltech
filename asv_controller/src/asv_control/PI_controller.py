@@ -8,36 +8,36 @@ from Generic_Controller import Generic_Controller
 
 # inherited from the Generic Controller class
 # members:
-    # state_asv, state_ref, current, v_asv, wayPoints, target_index, 
+    # state_asv, state_ref, current, v_asv, wayPoints, target_index,
     # destReached
 # Functions:
-    # destinationReached 
-    # update_variable 
+    # destinationReached
+    # update_variable
     # angleDiff
 
 class PI_controller(Generic_Controller):
-    
+
     def __init__(self):
         Generic_Controller.__init__(self) # initialize from generic controller
-        
+
         # parameters specific to PI_controller
         self.I_thrust = 0.0
         self.I_rudder = 0.0
-        self.h = 0.2 
+        self.h = 0.2
         self.V_REF = rospy.get_param('v_ref', 0.5)
         self.VEL_THRESHOLD = rospy.get_param('/v_threshold',0.2)
         self.K_t = rospy.get_param('thrust/K', 1000.0)
         self.Ti_t = rospy.get_param('thrust/Ti', 1.0)
         self.K_r = rospy.get_param('rudder/K', 500.0)
         self.Ti_r = rospy.get_param('rudder/Ti', 10.0)
-    
+
     # TODO: maybe make this an abstract method for generic controller
     def calc_control(self):
         rospy.logdebug("Desired wp: " + str(self.state_ref))
         rospy.logdebug("vel(x,y): " + str(self.v_asv))
 
         # update the param for live change from the user
-        self.V_REF = rospy.get_param('v_ref', 0.5) 
+        self.V_REF = rospy.get_param('v_ref', 0.5)
         self.VEL_THRESHOLD = rospy.get_param('/v_threshold', 0.2)
         v_ref = self.V_REF
 
@@ -64,7 +64,7 @@ class PI_controller(Generic_Controller):
 
         if abs(e_heading) > math.pi/3 and self.current[0] > 0.1:
             rospy.logdebug('FORSTA')
-
+            v_ref = vel_robot[0,0] + 1.0
             '''turn robot back towards current if it points to much downward'''
             e_ang = e_heading
         elif self.destReached:
@@ -108,6 +108,8 @@ class PI_controller(Generic_Controller):
         u_rudder = self.rudder_control(e_ang)
         u_thrust = self.thrust_control(e_v)
 
+        print('e_ang (in PI): ', e_ang)
+        print('e_v (in PI):', e_v)
         ### extension for using velocity to target
         # check which direction we're point at #
         # des_angle = math.atan2(state_ref[1] - state_asv[1], state_ref[0] - state_asv[0])

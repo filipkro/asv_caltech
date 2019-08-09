@@ -348,20 +348,13 @@ def transect():
         if lawnmower: # and transect_cnt > 2:
             STATE = 'MIDDLE'
             PI_controller_old.destinationReached(False)
-            print(STATE)
-            print('state_asv, line 350: ', state_asv)
-            print('state_ref, line 351: ', state_ref)
             theta_p = math.atan2(wayPoints[0].y - wayPoints[1].y, wayPoints[0].x - wayPoints[1].x)
             if direction:
                 theta_p = angleDiff(theta_p - math.pi) #left
 
-            print('theta_p', theta_p)
             dist = get_distance(theta_p)
-            print('dist', dist)
             state_ref[0] = state_asv[0] + dist * math.cos(theta_p)/2
             state_ref[1] = state_asv[1] + dist * math.sin(theta_p)/2
-            print('state_asv, line 354: ', state_asv)
-            print('state_ref, line 355: ', state_ref)
             rospy.set_param('ADCP/mean', False)
             # STATE = 'UPSTREAM'
             # print('before', state_ref)
