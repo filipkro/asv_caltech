@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 #state.py
-#using this guy's design 
+#using this guy's design
 # https://dev.to/karn/building-a-simple-state-machine-in-python
 
 
@@ -50,7 +50,6 @@ class State(object):
     def calc_control(self):
         '''
         Use the controller and return controls appropriate for this state
-        ''' 
+        '''
         print('implement this!')
         return 0,0
-

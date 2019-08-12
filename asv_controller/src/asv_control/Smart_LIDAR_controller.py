@@ -21,15 +21,26 @@ class Smart_LiDAR_Controller(Generic_Controller):
         self.state = Start()
         self.ranges = []
         self.lidar_inc = 0.0
+        self.goback_state = Start()
+        self.goback_bool = False
 
     def update_lidar(self, ranges, inc):
         '''get lidar readings'''
         self.ranges = ranges
-        self.lidar_inc = 2*math.pi/400
+        self.lidar_inc = 2*math.pi/len(ranges)
 
     def calc_control(self):
         # Update the controller
         # Important some controllers might use their own info, such as Transect
+        if (rospy.get_param('smart/idle', False) or self.destReached) and self.state.__str__() != "Idle":
+            self.goback_state = self.state
+            self.state = Idle()
+            self.goback_bool = True
+            print('goback_state', self.goback_state)
+        elif (not (rospy.get_param('smart/idle', False) or self.destReached)) and self.goback_bool:
+            self.state = self.goback_state
+            self.goback_bool = False
+
         self.state.update_controller_var(self.state_asv, self.state_ref, \
                 self.v_asv, self.target_index, self.wayPoints, self.current)
         self.state.controller.destinationReached(self.destReached)
@@ -94,6 +105,20 @@ class Hold(State):
         '''remember to update the controller before calling this'''
         self.controller.destinationReached(True)
         # self.controller.state_ref = self.controller.state_asv
+        return self.controller.calc_control()
+
+class Idle(State):
+    'Holds position'
+    def __init__(self):
+        State.__init__(self)
+        self.controller = PI_controller.PI_controller()
+
+    def on_event(self, event):
+        return self
+
+    def calc_control(self):
+        self.controller.destinationReached(True)
+        print('calc')
         return self.controller.calc_control()
 
 class Transect(State):

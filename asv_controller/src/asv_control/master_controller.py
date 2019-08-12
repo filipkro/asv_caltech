@@ -22,8 +22,8 @@ wayPoints = [] # list of waypoints
 target_index = 0 # index of target way point in the wayPoints
 h = 0.2
 vref = 0.0
-ranges = []
-lidar_inc = 0.0
+ranges = [0]
+lidar_inc = 1000
 ADCP_mean = [0.0, 0.0, 0.0] # [sum of average, num_samples, mean]
 
 # controllers
@@ -249,7 +249,7 @@ def main():
         rospy.logdebug('Target Index '+ str(target_index))
         trgt_updated = updateTarget()
         print(rospy.get_param('/nav_mode'))
-        if run or trgt_updated:
+        if run and trgt_updated:
             controller.destinationReached(not trgt_updated)
             controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)#, ADCP_mean)
             u_thrust, u_rudder = controller.calc_control()

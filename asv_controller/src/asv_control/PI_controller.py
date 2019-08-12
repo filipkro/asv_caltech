@@ -64,6 +64,8 @@ class PI_controller(Generic_Controller):
         e_heading = self.angleDiff(self.current[1] - self.state_asv[2])
         rospy.logdebug(e_heading)
 
+        print('destReached', self.destReached)
+
         if abs(e_heading) > math.pi/3 and self.current[0] > 0.1:
             rospy.logdebug('FORSTA')
             v_ref = vel_robot[0,0] + 0.5
@@ -76,6 +78,7 @@ class PI_controller(Generic_Controller):
             e_ang = e_heading
             rospy.logdebug(e_heading)
             rospy.logdebug(self.current)
+            print('dreached')
             v_ref = 0.0
         else:
             rospy.logdebug('TREDJE')
@@ -105,7 +108,9 @@ class PI_controller(Generic_Controller):
                                 < 0.05 and abs(self.current[0] - self.v_ref) < 0.1:
                 v_ref -= 0.5
 
+        print('v_ref', v_ref)
         e_v = v_ref - vel_robot[0,0]
+        print('e_v', e_v)
         rospy.logdebug("e_v " + str(e_v))
         rospy.logdebug('e_ang (in PI): ' + str(e_ang))
         u_rudder = self.rudder_control(e_ang)
