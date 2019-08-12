@@ -30,10 +30,10 @@ class Transect_controller(Generic_Controller):
         self.last_ang_des = 0 # previous deisred angle
 
         # parameters specific to transect controller
-        self.K_v = rospy.get_param('/transect/K_v', 10.0) # vertical speed gain
+        self.K_v = rospy.get_param('/transect/K_v', 0.5) # vertical speed gain
         self.K_t = rospy.get_param('transect_thrust/K', 10.0)
         self.K_latAng = rospy.get_param('/transect/K_latAng', 0.5) # lateral speed to angle
-        self.Kp_turn = rospy.get_param('/transect/turn_gain', 200) # turning gain for heading
+        self.Kp_turn = rospy.get_param('/transect/Kp_turn', 200) # turning gain for heading
         self.v_x_des = rospy.get_param('/transect/speed_ref', 0.5)
         self.DIST_THRESHOLD = rospy.get_param('/transect/dist_thres', 1.0) #unused
         self.ang_update_rate = rospy.get_param('/transect/ang_update_rate', 1)

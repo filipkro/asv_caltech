@@ -11,6 +11,7 @@ from std_msgs.msg import Float32, Float32MultiArray
 from sensor_msgs.msg import LaserScan
 import math
 import numpy as np
+import tf
 from visualization_msgs.msg import Marker, MarkerArray # for simulation
 
 state_asv = [0.0, 0.0, 0.0] # x, y, theta
@@ -51,6 +52,15 @@ def WP_callb(msg):
     state_ref[0] = wayPoints[0].x
     state_ref[1] = wayPoints[1].y
     target_index = 0
+
+def trans_broadcast():
+    global state_asv
+    br = tf.TransformBroadcaster()
+    br.sendTransform((state_asv[0], state_asv[1], 0),
+                tf.transformations.quaternion_from_euler(0, 0, state_asv[2]),
+                rospy.Time.now(),
+                'os1_lidar',
+                "map")
 
 def IMU_callb(msg):
     global state_asv
@@ -96,6 +106,7 @@ def lidar_callb(msg):
     global ranges, lidar_inc
     ranges = np.array(msg.ranges)
     lidar_inc = 2*math.pi/len(ranges)
+    trans_broadcast()
 
 
 def updateTarget():
@@ -190,9 +201,7 @@ def navGoal_callb(msg):
     state_ref[0] = point.x
     state_ref[1] = point.y
     state_ref[2] = point.z
-    #print("WP added! ", point)
-    #print("state ref:", state_ref)
-    #print(wayPoints)
+
 
 def switchControl():
     '''Choose the right controller'''
@@ -244,7 +253,8 @@ def main():
             motor_cmd.strboard = u_thrust
             motor_cmd.servo = u_rudder
         else:
-            controller.destinationReached(not trgt_updated)
+        #    controller.destinationReached(not trgt_updated)
+            controller.destinationReached(True)
             u_thrust, u_rudder = controller.calc_control()
             motor_cmd.port = u_thrust
             motor_cmd.strboard = u_thrust
