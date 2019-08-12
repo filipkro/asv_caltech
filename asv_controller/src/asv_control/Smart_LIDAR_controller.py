@@ -356,7 +356,7 @@ class Upstream(State):
         print('dLeft ', d_left)
         d_right = self.get_distance(self.controller.current[1] - math.pi/2) #use average instead
         print('dRight ', d_right)
-        dist_mid = (d_right - d_left)/2
+        dist_mid = (d_right - d_left)/4 #/2 for middle
         print('dist_mid ', dist_mid)
         theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
         print('theta_p ', theta_p)
@@ -439,7 +439,7 @@ class Home(State):
             # d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
             d_left = self.get_distance(self.controller.current[1] + math.pi/2) #use average instead
             d_right = self.get_distance(self.controller.current[1] - math.pi/2) #use average instead
-            dist_mid = (d_right - d_left)/2
+            dist_mid = (d_right - d_left)/4 # /2 for middle
             theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
             dist_downstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_downstream', 5.0)
             theta_dest = self.controller.angleDiff(theta_p - np.sign(dist_downstream*dist_mid)* math.atan2(abs(dist_downstream), abs(dist_mid)))
