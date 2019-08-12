@@ -21,15 +21,26 @@ class Smart_LiDAR_Controller(Generic_Controller):
         self.state = Start()
         self.ranges = []
         self.lidar_inc = 0.0
+        self.goback_state = Start()
+        self.goback_bool = False
 
     def update_lidar(self, ranges, inc):
         '''get lidar readings'''
         self.ranges = ranges
-        self.lidar_inc = 2*math.pi/400
+        self.lidar_inc = 2*math.pi/len(ranges)
 
     def calc_control(self):
         # Update the controller
         # Important some controllers might use their own info, such as Transect
+        if (rospy.get_param('smart/idle', False) or self.destReached) and self.state.__str__() != "Idle":
+            self.goback_state = self.state
+            self.state = Idle()
+            self.goback_bool = True
+            print('goback_state', self.goback_state)
+        elif (not (rospy.get_param('smart/idle', False) or self.destReached)) and self.goback_bool:
+            self.state = self.goback_state
+            self.goback_bool = False
+
         self.state.update_controller_var(self.state_asv, self.state_ref, \
                 self.v_asv, self.target_index, self.wayPoints, self.current)
         self.state.controller.destinationReached(self.destReached)
@@ -62,8 +73,8 @@ class Start(State):
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
 
         if dist < DIST_THRESHOLD:
-            # return Hold()
-            self.state = Explore()
+            return Hold()
+            # self.state = Explore()
         else:
             return self
 
@@ -94,6 +105,20 @@ class Hold(State):
         '''remember to update the controller before calling this'''
         self.controller.destinationReached(True)
         # self.controller.state_ref = self.controller.state_asv
+        return self.controller.calc_control()
+
+class Idle(State):
+    'Holds position'
+    def __init__(self):
+        State.__init__(self)
+        self.controller = PI_controller.PI_controller()
+
+    def on_event(self, event):
+        return self
+
+    def calc_control(self):
+        self.controller.destinationReached(True)
+        print('calc')
         return self.controller.calc_control()
 
 class Transect(State):
@@ -260,9 +285,7 @@ class Upstream(State):
         self.dist_calc.ranges = self.ranges
         d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
         d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
-        dist_mid = (d_right - d_left)/
-
-        rospy.get_param('/waypoint/fraction', 2)
+        dist_mid = (d_right - d_left)/rospy.get_param('/waypoint/fraction', 2)
         theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
         dist_upstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_upstream', 5.0)
         theta_dest = self.controller.angleDiff(theta_p + np.sign(dist_upstream*dist_mid)*(math.atan2(abs(dist_upstream), abs(dist_mid))))
