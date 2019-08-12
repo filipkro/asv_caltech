@@ -253,7 +253,8 @@ def main():
             motor_cmd.strboard = u_thrust
             motor_cmd.servo = u_rudder
         else:
-            controller.destinationReached(not trgt_updated)
+        #    controller.destinationReached(not trgt_updated)
+            controller.destinationReached(True)
             u_thrust, u_rudder = controller.calc_control()
             motor_cmd.port = u_thrust
             motor_cmd.strboard = u_thrust

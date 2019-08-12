@@ -48,7 +48,7 @@ class Start(State):
         State.__init__(self)
         self.controller = PI_controller.PI_controller()
         self.xref = rospy.get_param('/start/x', 0.0)
-        self.yref = rospy.get_param('/start/y', 2.0)
+        self.yref = rospy.get_param('/start/y', 0.0)
 
     def on_event(self, event):
         '''
@@ -62,7 +62,8 @@ class Start(State):
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
 
         if dist < DIST_THRESHOLD:
-            return Hold()
+            # return Hold()
+            self.state = Explore()
         else:
             return self
 
@@ -111,7 +112,7 @@ class Transect(State):
         self.max_transect = rospy.get_param('/transect/max_transect', 5)
         self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
         self.trans_per_upstr = self.transect_cnt + rospy.get_param('/upstream/cnt_per', 1) #number of full transects, 0 gives the first "half transect"
-        self.upstream = rospy.get_param('/upstream', True)
+        self.upstream = rospy.get_param('/upstream', False)
 
         self.transect_time_ref = 5.0
         self.direction = dir #False - look at shore to the left, True-look at shore to the right
@@ -259,7 +260,9 @@ class Upstream(State):
         self.dist_calc.ranges = self.ranges
         d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
         d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
-        dist_mid = (d_right - d_left)/rospy.get_param('/waypoint_fraction', 2)
+        dist_mid = (d_right - d_left)/
+
+        rospy.get_param('/waypoint/fraction', 2)
         theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
         dist_upstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_upstream', 5.0)
         theta_dest = self.controller.angleDiff(theta_p + np.sign(dist_upstream*dist_mid)*(math.atan2(abs(dist_upstream), abs(dist_mid))))
@@ -306,9 +309,10 @@ class Home(State):
             self.yref = self.home[1]
         else:
             self.dist_calc.ranges = self.ranges
+            self.dist_calc.controller.state_asv = self.controller.state_asv
             d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
             d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
-            dist_mid = (d_right - d_left)/rospy.get_param('/waypoint_fraction', 2)
+            dist_mid = (d_right - d_left)/rospy.get_param('/waypoint/fraction', 2)
             theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
             dist_downstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_downstream', 5.0)
             theta_dest = self.controller.angleDiff(theta_p - np.sign(dist_downstream*dist_mid)* math.atan2(abs(dist_downstream), abs(dist_mid)))
@@ -352,4 +356,39 @@ class Finished(State):
     def calc_control(self):
         '''remember to update the controller before calling this'''
         self.controller.destinationReached(True)
+        return self.controller.calc_control()
+
+class Explore(State):
+    def __init__(self):
+        State.__init__(self)
+        self.controller = PI_controller.PI_controller()
+        self.dist_calc = self.dist_calc = Transect(last_controller=self.controller, ranges=self.ranges, \
+                            lidar_inc=self.lidar_inc, transect=False)
+        self.dist_travelled = 0.0
+
+    def on_event(self, event):
+        self.dist_travelled += self.controller.vel_robotX * 0.2
+        if self.dist_travelled > rospy.get_param('/max_distance', 7.0):
+            return Home(self.ranges, self.controller.state_asv, self.controller.current)
+        else:
+            return self
+
+    def update_ref(self):
+        '''Update reference point, middle (or fraction specified by rosparam) of river a specified distance downstream'''
+        self.dist_calc.ranges = self.ranges
+        self.dist_calc.controller.state_asv = self.controller.state_asv
+        d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
+        d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
+        dist_mid = (d_right - d_left)/rospy.get_param('/waypoint/fraction', 2)
+        theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
+        dist_upstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_upstream', 5.0)
+        theta_dest = self.controller.angleDiff(theta_p + np.sign(dist_upstream*dist_mid)*(math.atan2(abs(dist_upstream), abs(dist_mid))))
+        dist = math.sqrt(dist_mid**2 + dist_upstream**2)
+        self.xref = self.controller.state_asv[0] + dist * math.cos(theta_dest)
+        self.yref = self.controller.state_asv[1] + dist * math.sin(theta_dest)
+
+    def calc_control(self):
+        '''remember to update the controller before calling this'''
+        self.controller.state_ref[0] = self.xref
+        self.controller.state_ref[1] = self.yref
         return self.controller.calc_control()

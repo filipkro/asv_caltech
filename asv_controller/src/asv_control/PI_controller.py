@@ -30,6 +30,7 @@ class PI_controller(Generic_Controller):
         self.Ti_t = rospy.get_param('thrust/Ti', 1.0)
         self.K_r = rospy.get_param('rudder/K', 500.0)
         self.Ti_r = rospy.get_param('rudder/Ti', 10.0)
+        self.v_robotX = 0.0
 
     # TODO: maybe make this an abstract method for generic controller
     def calc_control(self):
@@ -46,6 +47,7 @@ class PI_controller(Generic_Controller):
             [-np.sin(self.state_asv[2]), np.cos(self.state_asv[2])]])
         vel_unrot = np.array([[self.v_asv[0]],[self.v_asv[1]]])
         vel_robot = np.matmul(rot, vel_unrot)
+        self.vel_robotX = vel_robot[0]
 
         ####### Changes to speed to target ############### ##NOT WORKING
         # v = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
