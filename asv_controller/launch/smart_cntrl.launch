@@ -42,10 +42,10 @@
     </node>
 
     <!-- Rosbridge for Remote Control -->
-    <!-- <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/> -->
+    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
 
     <!-- LIDAR -->	
-    <!-- <include file="$(find ouster_ros)/os1.launch"/> -->
+     <include file="$(find ouster_ros)/os1.launch"/> 
 
     <!-- Rosbag Recording -->
     <!-- <node
