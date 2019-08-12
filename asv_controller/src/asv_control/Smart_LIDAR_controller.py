@@ -63,7 +63,7 @@ class Start(State):
 
         if dist < DIST_THRESHOLD:
             # return Hold()
-            self.state = Explore()
+            return Hold()
         else:
             return self
 
@@ -170,6 +170,7 @@ class Transect(State):
             nbr_of_points: number of readings to average over'''
         state_asv = self.controller.state_asv
         lidar_inc = 2*math.pi / len(self.ranges)
+        lidar_off = rospy.get_param('lidar_offset', 0.0) # in radians
         nbr = int(math.floor(nbr_of_points/2))
         index = int((self.controller.angleDiff(ang - state_asv[2]) \
                                                     + math.pi)/lidar_inc) % len(self.ranges)
@@ -364,6 +365,7 @@ class Explore(State):
         self.dist_calc = self.dist_calc = Transect(last_controller=self.controller, ranges=self.ranges, \
                             lidar_inc=self.lidar_inc, transect=False)
         self.dist_travelled = 0.0
+        self.update_ref()
 
     def on_event(self, event):
         self.dist_travelled += self.controller.vel_robotX * 0.2

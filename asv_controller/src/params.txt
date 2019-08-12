@@ -40,3 +40,4 @@ Smart_LiDAR_Controller:
   /home/y, 0.0, home y position
   /dist_downstream, 5.0, distance to reference point on the way back home
   /max_distance, 7.0, max distance traveled in Explore state
+  /lidar_offset, 0.0, lidar angle offset relative to the asv

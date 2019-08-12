@@ -91,7 +91,8 @@ def ADCP_callb2(msg):
 
     adcp_offset = rospy.get_param('/ADCP/angleOff', 135)
     v_angle = angleDiff(v_angle+adcp_offset)
-
+    current[0] = v_surface 
+    current[1] = v_angle
     if calc_mean:
         if rospy.get_param('/ADCP/reset', False):
             ADCP_mean = [0.0, 0.0, 0.0] # [sum of average, num_samples, mean]
@@ -100,6 +101,9 @@ def ADCP_callb2(msg):
         ADCP_mean[0] += v_angle
         ADCP_mean[1] += 1
         ADCP_mean[2] = ADCP_mean[0]/ADCP_mean[1]
+
+        current[0] = v_surface
+        current[1] = ADCP_mean[2]
 
 
 def lidar_callb(msg):
