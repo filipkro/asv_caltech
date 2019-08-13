@@ -7,7 +7,7 @@ from Smart_LIDAR_controller import Smart_LiDAR_Controller
 from gps_reader.msg import GPS_data, GPS_WayPoints
 from motor_control.msg import MotorCommand
 from geometry_msgs.msg import PointStamped, PoseStamped
-from std_msgs.msg import Float32, Int64MultiArray
+from std_msgs.msg import Float32, Int64MultiArray, Float32MultiArray
 from sensor_msgs.msg import LaserScan
 import math
 import numpy as np
@@ -43,6 +43,7 @@ def GPS_callb(msg):
     v_asv[1] = msg.y_vel
     v_asv[2] = msg.ang_course
 
+    print('v in master', v_asv)
     vel = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
 
 def WP_callb(msg):
@@ -78,6 +79,9 @@ def ADCP_callb(msg): # simulation, not accurate
         ADCP_mean[0] += v_angle
         ADCP_mean[1] += 1
         ADCP_mean[2] = ADCP_mean[0]/ADCP_mean[1]
+        current[1] = ADCP_mean[2]
+
+    print('current in callb', current)
 
 def ADCP_callb2(msg):
     global current, ADCP_mean
@@ -91,7 +95,7 @@ def ADCP_callb2(msg):
 
     adcp_offset = rospy.get_param('/ADCP/angleOff', 135)
     v_angle = angleDiff(v_angle+adcp_offset)
-    current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2) 
+    current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2)
     current[1] = v_angle
     if calc_mean:
         if rospy.get_param('/ADCP/reset', False):
@@ -240,8 +244,12 @@ def main():
     rospy.Subscriber('heading', Float32, IMU_callb)
     rospy.Subscriber('ControlCenter/gps_wp', GPS_WayPoints, WP_callb)
     rospy.Subscriber('adcp/data', Int64MultiArray, ADCP_callb2) # needs fixing for real thing
+    rospy.Subscriber('adcp/data/sim', Float32MultiArray, ADCP_callb) # needs fixing for real thing
     rospy.Subscriber('move_base_simple/goal', PoseStamped, navGoal_callb)
     rospy.Subscriber('/os1/scan', LaserScan, lidar_callb)
+
+    pub_trans = rospy.Publisher('transect', MarkerArray, queue_size=1)
+    transects = MarkerArray()
 
     # publish to motor controller
     motor_cmd = MotorCommand()
@@ -259,6 +267,8 @@ def main():
         rospy.logdebug('Target Index '+ str(target_index))
         trgt_updated = updateTarget()
         print(rospy.get_param('/nav_mode'))
+        print('state_asv', state_asv)
+        print('current', current)
         if run and trgt_updated:
             controller.destinationReached(not trgt_updated)
 	    print("Master stateref", state_ref)
@@ -267,6 +277,50 @@ def main():
             motor_cmd.port = u_thrust
             motor_cmd.strboard = u_thrust
             motor_cmd.servo = u_rudder
+
+            if rospy.get_param('/nav_mode', 'Waypoint') == "Smart":
+                if controller.state.__str__() == "Transect":
+                    marker = Marker()
+                    marker.header.frame_id = "/map"
+                    marker.type = marker.LINE_STRIP
+                    marker.action = marker.ADD
+
+                    # marker scale
+                    marker.scale.x = 0.5
+                    marker.scale.y = 0.5
+                    marker.scale.z = 0.5
+
+                    # marker color
+                    marker.color.a = 1.0
+                    marker.color.r = 0.0
+                    marker.color.g = 0.0
+                    marker.color.b = 1.0
+
+                    # marker orientaiton
+                    marker.pose.orientation.x = 0.0
+                    marker.pose.orientation.y = 0.0
+                    marker.pose.orientation.z = 0.0
+                    marker.pose.orientation.w = 1.0
+
+                    # marker position
+                    marker.pose.position.x = 0.0
+                    marker.pose.position.y = 0.0
+                    marker.pose.position.z = 0.0
+
+                    [p1,p2] = controller.state.get_transect()
+
+                    # marker line points
+                    marker.points = []
+                    marker.points.append(p1)
+                    marker.points.append(p2)
+                    transects.markers.append(marker)
+
+                    id = 0
+                    for m in transects.markers:
+                        m.id = id
+                        id += 1
+
+                    pub_trans.publish(transects)
         else:
         #    controller.destinationReached(not trgt_updated)
             controller.destinationReached(True)

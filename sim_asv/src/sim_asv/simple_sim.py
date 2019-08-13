@@ -4,7 +4,7 @@ import rospy
 from gps_reader.msg import GPS_data
 from motor_control.msg import MotorCommand
 from geometry_msgs.msg import PoseStamped, Point
-from std_msgs.msg import Float32, Float32MultiArray
+from std_msgs.msg import Float32, Float32MultiArray, Int64MultiArray
 from nav_msgs.msg import Odometry
 from visualization_msgs.msg import Marker, MarkerArray
 from sensor_msgs.msg import LaserScan
@@ -14,7 +14,7 @@ import tf
 
 pub_gps = rospy.Publisher('/GPS/xy_coord', GPS_data, queue_size=10)
 pub_imu = rospy.Publisher('/heading', Float32, queue_size=10)
-pub_adcp = rospy.Publisher('adcp/data', Float32MultiArray, queue_size=10)
+pub_adcp = rospy.Publisher('adcp/data/sim', Float32MultiArray, queue_size=10)
 pub_odom = rospy.Publisher('sim/pose', Odometry, queue_size=10)
 pub_lidar = rospy.Publisher('os1/scan', LaserScan, queue_size=1)
 walls = MarkerArray()

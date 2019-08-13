@@ -11,6 +11,7 @@ import math
 import tf
 import numpy as np
 from Generic_Controller import Generic_Controller
+from visualization_msgs.msg import Marker, MarkerArray
 from geometry_msgs.msg import Point
 
 
@@ -82,8 +83,8 @@ class Start(State):
 
     def calc_control(self):
         '''remember to update the controller before calling this'''
-       # self.controller.state_ref[0] = self.xref
-       # self.controller.state_ref[1] = self.yref
+        self.controller.state_ref[0] = self.xref
+        self.controller.state_ref[1] = self.yref
         return self.controller.calc_control()
 
 
@@ -152,6 +153,8 @@ class Transect(State):
         # calculate transect once upon initialization
         current = self.controller.current # fix the averaging
         current_angle = current[1]
+
+
 
         if transect:
             [self.p1, self.p2] = self.calculate_transect(current_angle)
@@ -226,8 +229,10 @@ class Transect(State):
         # generate points using simple trig
         point1.x = state_asv[0] + (distR + 10) * math.cos(theta_c - math.pi/2)
         point1.y = state_asv[1] + (distR + 10) * math.sin(theta_c - math.pi/2)
+        point1.z = 0.0
         point2.x = state_asv[0] + (distL + 10) * math.cos(theta_c + math.pi/2)
         point2.y = state_asv[1] + (distL + 10) * math.sin(theta_c + math.pi/2)
+        point2.z = 0.0
 
         return [point1, point2]
 
@@ -267,6 +272,9 @@ class Transect(State):
         close = np.nonzero(dists < dist_th)
 
         return len(close[0]) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
+
+    def get_transect(self):
+        return self.wayPoints
 
 
 class Upstream(State):

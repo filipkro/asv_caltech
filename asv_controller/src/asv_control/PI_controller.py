@@ -110,6 +110,8 @@ class PI_controller(Generic_Controller):
 
         print('v_ref', v_ref)
         e_v = v_ref - vel_robot[0,0]
+        print('v_robot', vel_robot[0,0])
+        print('v_gps', self.v_asv)
         print('e_v', e_v)
         rospy.logdebug("e_v " + str(e_v))
         rospy.logdebug('e_ang (in PI): ' + str(e_ang))
