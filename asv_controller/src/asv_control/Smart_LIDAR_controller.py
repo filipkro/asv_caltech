@@ -75,9 +75,9 @@ class Start(State):
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
         dist = math.sqrt((self.controller.state_ref[0] - self.controller.state_asv[0])**2 \
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
-                    
+
         if dist < DIST_THRESHOLD:
-            # return Hold()
+            # return Explore(self.ranges)
             return Hold()
         else:
             return self
@@ -396,8 +396,9 @@ class Finished(State):
         return self.controller.calc_control()
 
 class Explore(State):
-    def __init__(self):
+    def __init__(self, lidar):
         State.__init__(self)
+        self.ranges = lidar
         self.controller = PI_controller.PI_controller()
         self.dist_calc = self.dist_calc = Transect(last_controller=self.controller, ranges=self.ranges, \
                             lidar_inc=self.lidar_inc, transect=False)
@@ -405,6 +406,7 @@ class Explore(State):
         self.update_ref()
 
     def on_event(self, event):
+        self.update_ref()
         self.dist_travelled += self.controller.vel_robotX * 0.2
         if self.dist_travelled > rospy.get_param('/max_distance', 7.0):
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
@@ -424,6 +426,8 @@ class Explore(State):
         dist = math.sqrt(dist_mid**2 + dist_upstream**2)
         self.xref = self.controller.state_asv[0] + dist * math.cos(theta_dest)
         self.yref = self.controller.state_asv[1] + dist * math.sin(theta_dest)
+
+
 
     def calc_control(self):
         '''remember to update the controller before calling this'''
