@@ -43,7 +43,6 @@ def GPS_callb(msg):
     v_asv[1] = msg.y_vel
     v_asv[2] = msg.ang_course
 
-    print('v in master', v_asv)
     vel = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
 
 def WP_callb(msg):
@@ -80,8 +79,6 @@ def ADCP_callb(msg): # simulation, not accurate
         ADCP_mean[1] += 1
         ADCP_mean[2] = ADCP_mean[0]/ADCP_mean[1]
         current[1] = ADCP_mean[2]
-
-    print('current in callb', current)
 
 def ADCP_callb2(msg):
     global current, ADCP_mean
@@ -211,7 +208,6 @@ def navGoal_callb(msg):
     state_ref[0] = point.x
     state_ref[1] = point.y
     state_ref[2] = point.z
-    print('we got something')
 
 def switchControl():
     '''Choose the right controller'''
@@ -267,11 +263,9 @@ def main():
         rospy.logdebug('Target Index '+ str(target_index))
         trgt_updated = updateTarget()
         print(rospy.get_param('/nav_mode'))
-        print('state_asv', state_asv)
-        print('current', current)
+
         if run and trgt_updated:
             controller.destinationReached(not trgt_updated)
-	    print("Master stateref", state_ref)
             controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)#, ADCP_mean)
             u_thrust, u_rudder = controller.calc_control()
             motor_cmd.port = u_thrust
@@ -323,6 +317,7 @@ def main():
                     pub_trans.publish(transects)
         else:
         #    controller.destinationReached(not trgt_updated)
+            controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)#, ADCP_mean)
             controller.destinationReached(True)
             u_thrust, u_rudder = controller.calc_control()
             motor_cmd.port = u_thrust
@@ -330,7 +325,7 @@ def main():
             motor_cmd.servo = u_rudder
 
         rospy.logdebug('MotorCmd ' + str(motor_cmd))
-        ctrl_pub.publish(motor_cmd)
         print('motorcmnd (in master):', motor_cmd)
+        ctrl_pub.publish(motor_cmd)
 
         rate.sleep()

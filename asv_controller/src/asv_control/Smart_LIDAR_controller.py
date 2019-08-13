@@ -37,13 +37,14 @@ class Smart_LiDAR_Controller(Generic_Controller):
             self.goback_state = self.state
             self.state = Idle()
             self.goback_bool = True
-            print('goback_state', self.goback_state)
         elif (not (rospy.get_param('smart/idle', False) or self.destReached)) and self.goback_bool:
             self.state = self.goback_state
             self.goback_bool = False
-        if rospy.get_param('restart', False):
-            self.state = Start()
-            rospy.set_param('restart', False)
+    	if rospy.get_param('restart', False):
+    	    self.state = Start()
+    	    rospy.set_param('restart', False)
+
+
         self.state.update_controller_var(self.state_asv, self.state_ref, \
                 self.v_asv, self.target_index, self.wayPoints, self.current)
         self.state.controller.destinationReached(self.destReached)
@@ -74,17 +75,19 @@ class Start(State):
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
         dist = math.sqrt((self.controller.state_ref[0] - self.controller.state_asv[0])**2 \
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
-	print('start: ', self.controller.state_ref[0], self.controller.state_ref[1])
+
         if dist < DIST_THRESHOLD:
-            # return Hold()
+            # return Explore(self.ranges)
             return Hold()
         else:
             return self
 
     def calc_control(self):
         '''remember to update the controller before calling this'''
-        self.controller.state_ref[0] = self.xref
-        self.controller.state_ref[1] = self.yref
+        self.xref = rospy.get_param('/start/x', 0.0)
+        self.yref = rospy.get_param('/start/y', 0.0)
+        # self.controller.state_ref[0] = self.xref
+        # self.controller.state_ref[1] = self.yref
         return self.controller.calc_control()
 
 
@@ -121,7 +124,6 @@ class Idle(State):
 
     def calc_control(self):
         self.controller.destinationReached(True)
-        print('calc')
         return self.controller.calc_control()
 
 class Transect(State):
@@ -157,9 +159,11 @@ class Transect(State):
 
 
         if transect:
+            current_angle = -self.controller.state_asv[2]
             [self.p1, self.p2] = self.calculate_transect(current_angle)
             # IMPORTANT: Transect state disregard target_index, wayPoints information
             # from the top controller. It instead has its own
+            
             if self.direction:
                 self.target_index = 0
             else:
@@ -167,11 +171,17 @@ class Transect(State):
             self.wayPoints = [self.p1, self.p2]
 
     def on_event(self, event):
+        print('transect point', self.p1, self.p2)
+        #print('current angle...', current_angle)
         if (rospy.get_rostime() - self.start_time).to_sec() > self.run_time:
+            print(self.start_time)
+            print((rospy.get_rostime() - self.start_time).to_sec() > self.run_time)
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
         elif self.too_close(self.direction):
             self.direction = not self.direction
             self.transect_cnt += 1
+
+            print('TURNING... ', self.direction)
 
             if self.transect_cnt > self.max_transect:
                 return Home(self.ranges, self.controller.state_asv, self.controller.current)
@@ -394,8 +404,9 @@ class Finished(State):
         return self.controller.calc_control()
 
 class Explore(State):
-    def __init__(self):
+    def __init__(self, lidar):
         State.__init__(self)
+        self.ranges = lidar
         self.controller = PI_controller.PI_controller()
         self.dist_calc = self.dist_calc = Transect(last_controller=self.controller, ranges=self.ranges, \
                             lidar_inc=self.lidar_inc, transect=False)
@@ -403,6 +414,7 @@ class Explore(State):
         self.update_ref()
 
     def on_event(self, event):
+        self.update_ref()
         self.dist_travelled += self.controller.vel_robotX * 0.2
         if self.dist_travelled > rospy.get_param('/max_distance', 7.0):
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
@@ -422,6 +434,8 @@ class Explore(State):
         dist = math.sqrt(dist_mid**2 + dist_upstream**2)
         self.xref = self.controller.state_asv[0] + dist * math.cos(theta_dest)
         self.yref = self.controller.state_asv[1] + dist * math.sin(theta_dest)
+
+
 
     def calc_control(self):
         '''remember to update the controller before calling this'''
