@@ -236,7 +236,7 @@ def angleDiff(angle):
     return angle
 
 def main():
-    global samp_time, wayPoints, h, vref, current, state_ref
+    global samp_time, wayPoints, h, vref, current, state_ref, state_asv
     rospy.init_node('master_controller')
 
     # information update subscriber

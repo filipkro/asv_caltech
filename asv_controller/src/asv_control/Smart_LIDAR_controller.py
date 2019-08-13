@@ -41,9 +41,9 @@ class Smart_LiDAR_Controller(Generic_Controller):
         elif (not (rospy.get_param('smart/idle', False) or self.destReached)) and self.goback_bool:
             self.state = self.goback_state
             self.goback_bool = False
-	if rospy.get_param('restart', False):
-	    self.state = Start()
-	    rospy.set_param('restart', False)
+        if rospy.get_param('restart', False):
+            self.state = Start()
+            rospy.set_param('restart', False)
         self.state.update_controller_var(self.state_asv, self.state_ref, \
                 self.v_asv, self.target_index, self.wayPoints, self.current)
         self.state.controller.destinationReached(self.destReached)
