@@ -1,25 +1,29 @@
 /ADCP/mean: False # if true calculates adcp mean
 /ADCP/reset: False #if true resets adcp mean calculations
-/ADCP/angleOff: 135 # offset of adcp angle (angle=adcp_angle+offset)
-/dist_threshold: 1.0 # distance_threshold to determine whether destination is reached
+/ADCP/angleOff: 300.0 # offset of adcp angle (angle=adcp_angle+offset)
+/dist_threshold: 4.0 # distance_threshold to determine whether destination is reached
 /nav_mode: 'Smart' # Waypoint, Transect, Smart - determines which program to run
 /run: False # if true runs chosen program, else holds position
 
+/originLat: 35.4502067589163
+/originLon: -118.91261424869302
+
 /v_ref: 0.5 # linear reference velocity
 /v_threshold: 0.2 # if velocity is lower than threshold imu is used as heading feedback else GPS
-/thrust/K: 1000.0 # proportional gain in thrust controller (U(s) = E(s)*K(1+1/sTi))
+/thrust/K: 500.0 # proportional gain in thrust controller (U(s) = E(s)*K(1+1/sTi))
 /thrust/Ti: 1.0 # integral gain in thrust controller
-/rudder/K: 500.0 # proportional gain in rudder controller (U(s) = E(s)*K(1+1/sTi))
+/rudder/K: 100.0 # proportional gain in rudder controller (U(s) = E(s)*K(1+1/sTi))
 /rudder/Ti: 10.0 # integral gain in rudder controller
 
-/transect/K_v: 0.5 # vertical speed gain
-/transect_thrust/K: 10.0
-/transect/K_latAng: 0.5 # lateral speed angle
-/transect/Kp_turn: 200 # turning gain for heading
+/transect/K_v: 0.2 # vertical speed gain
+/transect_thrust/K: 600.0
+/transect/K_latAng: 0.3 # lateral speed angle
+/transect/Kp_turn: 800 # turning gain for heading
 /transect/speed_ref: 0.5
 /transect/dist_thres: 1.0 # (unused ?)
-/transect/ang_update_rate: 1
+/transect/ang_update_rate: 2
 /transect/v_update_rate: 1
+/transect/u_nominal: 0.0
 
 /start/x: 0.0 #, start x position
 /start/y: 0.0 #, start y position

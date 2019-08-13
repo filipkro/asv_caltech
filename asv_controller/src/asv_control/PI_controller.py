@@ -26,11 +26,14 @@ class PI_controller(Generic_Controller):
         self.h = 0.2
         self.V_REF = rospy.get_param('v_ref', 0.5)
         self.VEL_THRESHOLD = rospy.get_param('/v_threshold',0.2)
-        self.K_t = rospy.get_param('thrust/K', 1000.0)
-        self.Ti_t = rospy.get_param('thrust/Ti', 1.0)
-        self.K_r = rospy.get_param('rudder/K', 500.0)
+        self.K_t = rospy.get_param('thrust/K', 400.0)
+        self.Ti_t = rospy.get_param('thrust/Ti', 10.0)
+        self.K_r = rospy.get_param('rudder/K', 150.0)
         self.Ti_r = rospy.get_param('rudder/Ti', 10.0)
         self.v_robotX = 0.0
+
+    def d2t(self):
+        return math.sqrt((self.state_asv[0] - self.state_ref[0])**2 + (self.state_asv[1] - self.state_ref[1])**2)
 
     # TODO: maybe make this an abstract method for generic controller
     def calc_control(self):
@@ -48,6 +51,17 @@ class PI_controller(Generic_Controller):
         vel_unrot = np.array([[self.v_asv[0]],[self.v_asv[1]]])
         vel_robot = np.matmul(rot, vel_unrot)
         self.vel_robotX = vel_robot[0]
+
+        if rospy.get_param('/I/reset', False):
+            self.I_rudder = 0.0
+            self.I_thrust = 0.0
+
+        print('state ref', self.state_ref)
+        print('state asv', self.state_asv)
+        print('current angle', self.current[1])
+        print('heading angle', self.state_asv[2])
+        print('current vel', self.current[0])
+        print('vel boat', self.v_asv)
 
         ####### Changes to speed to target ############### ##NOT WORKING
         # v = math.sqrt(v_asv[0]**2 + v_asv[1]**2)
@@ -92,21 +106,27 @@ class PI_controller(Generic_Controller):
                 '''else use GPS'''
                 ang_dir = self.v_asv[2]
 
-            if abs(self.angleDiff(des_angle + math.pi - self.current[1])) \
-                                 < math.pi/2 and self.current[0] > 0.1:
+            if abs(self.angleDiff(des_angle - self.current[1])) > math.pi/2 and self.current[0] > 0.2:
                 '''if goal point is downstream go towards it by floating with current'''
                 e_ang = self.angleDiff(math.pi - des_angle + ang_dir)
                 v_ref = -v_ref/2
                 rospy.logdebug("angle error " + str(e_ang))
+            elif abs(self.angleDiff(des_angle - self.current[1])) > math.pi/4 and \
+                        self.current[0] > 0.2 and self.d2t() < 3 * rospy.get_param('/dist_threshold', 1.0):
+                v_ref = v_ref/2
+                e_ang = self.angleDiff(des_angle - ang_dir)
+
             else:
                 e_ang = self.angleDiff(des_angle - ang_dir)
 
             if abs(self.angleDiff(self.current[1] + math.pi - self.state_asv[2]))  \
-                                < 0.05 and abs(self.current[0] - self.v_ref) < 0.1:
-                v_ref -= 0.5
+                                < 0.05 and abs(self.current[0] - self.V_REF) < 0.1:
+                v_ref -= 0.25
 
-
+        print('vel robot', vel_robot[0,0])
         e_v = v_ref - vel_robot[0,0]
+        print('vel error', e_v)
+        print('ang error',e_ang)
         rospy.logdebug("e_v " + str(e_v))
         rospy.logdebug('e_ang (in PI): ' + str(e_ang))
         u_rudder = self.rudder_control(e_ang)
@@ -130,15 +150,15 @@ class PI_controller(Generic_Controller):
         MIN_THRUST = -1000
         '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
 
-        self.K_t = rospy.get_param('thrust/K', 1000.0)
-        self.Ti_t = rospy.get_param('thrust/Ti', 1.0)
+        self.K_t = rospy.get_param('thrust/K', 400.0)
+        self.Ti_t = rospy.get_param('thrust/Ti', 10.0)
 
         rospy.logdebug("THRUST:")
         rospy.logdebug("K: " + str(self.K_t))
         rospy.logdebug("Ti: " + str(self.Ti_t))
         ##########################
 
-        u = np.clip(self.K_t*(e_v + self.h/self.Ti_t*self.I_thrust), \
+        u = np.clip(-self.K_t*(e_v + self.h/self.Ti_t*self.I_thrust), \
                              MIN_THRUST, MAX_THRUST)
         if u >= MIN_THRUST + 50  and u <= MAX_THRUST - 50:
             self.I_thrust = self.I_thrust + e_v
@@ -155,7 +175,7 @@ class PI_controller(Generic_Controller):
 
         '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
 
-        self.K_r = rospy.get_param('rudder/K', 500.0)
+        self.K_r = rospy.get_param('rudder/K', 150.0)
         self.Ti_r = rospy.get_param('rudder/Ti', 10.0)
         ##########################
         rospy.logdebug("RUDDER:")
