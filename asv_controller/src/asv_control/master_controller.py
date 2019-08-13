@@ -7,7 +7,7 @@ from Smart_LIDAR_controller import Smart_LiDAR_Controller
 from gps_reader.msg import GPS_data, GPS_WayPoints
 from motor_control.msg import MotorCommand
 from geometry_msgs.msg import PointStamped, PoseStamped
-from std_msgs.msg import Float32, Float32MultiArray
+from std_msgs.msg import Float32, Int64MultiArray
 from sensor_msgs.msg import LaserScan
 import math
 import numpy as np
@@ -91,7 +91,7 @@ def ADCP_callb2(msg):
 
     adcp_offset = rospy.get_param('/ADCP/angleOff', 135)
     v_angle = angleDiff(v_angle+adcp_offset)
-    current[0] = v_surface 
+    current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2) 
     current[1] = v_angle
     if calc_mean:
         if rospy.get_param('/ADCP/reset', False):
@@ -102,9 +102,11 @@ def ADCP_callb2(msg):
         ADCP_mean[1] += 1
         ADCP_mean[2] = ADCP_mean[0]/ADCP_mean[1]
 
-        current[0] = v_surface
+        current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2)
         current[1] = ADCP_mean[2]
 
+def s16(value):
+    return -(value & 0x8000) | (value & 0x7fff)
 
 def lidar_callb(msg):
     global ranges, lidar_inc
@@ -117,7 +119,7 @@ def updateTarget():
     '''Update target way point based on current position
         return True when there's still point to navigate
         '''
-    global target_index
+    global target_index, state_ref, state_asv
     dist_2_target = math.sqrt( (state_asv[0] - state_ref[0])**2
         + (state_asv[1] - state_ref[1])**2 )
 
@@ -200,12 +202,12 @@ def create_wpList():
 
 def navGoal_callb(msg):
     ''' reference state update. Specifically for Rviz'''
-    global wayPoints
+    global wayPoints, state_ref
     point = msg.pose.position
     state_ref[0] = point.x
     state_ref[1] = point.y
     state_ref[2] = point.z
-
+    print('we got something')
 
 def switchControl():
     '''Choose the right controller'''
@@ -221,15 +223,23 @@ def switchControl():
     else:
         return PI_controller.PI_controller()
 
+def angleDiff(angle):
+    while angle > math.pi:
+        angle = angle - 2 * math.pi
+    while angle < -math.pi:
+        angle = angle + 2 * math.pi
+
+    return angle
+
 def main():
-    global samp_time, wayPoints, h, vref, current
+    global samp_time, wayPoints, h, vref, current, state_ref
     rospy.init_node('master_controller')
 
     # information update subscriber
     rospy.Subscriber('GPS/xy_coord', GPS_data, GPS_callb)
     rospy.Subscriber('heading', Float32, IMU_callb)
     rospy.Subscriber('ControlCenter/gps_wp', GPS_WayPoints, WP_callb)
-    rospy.Subscriber('adcp/data', Float32MultiArray, ADCP_callb) # needs fixing for real thing
+    rospy.Subscriber('adcp/data', Int64MultiArray, ADCP_callb2) # needs fixing for real thing
     rospy.Subscriber('move_base_simple/goal', PoseStamped, navGoal_callb)
     rospy.Subscriber('/os1/scan', LaserScan, lidar_callb)
 
@@ -251,6 +261,7 @@ def main():
         print(rospy.get_param('/nav_mode'))
         if run and trgt_updated:
             controller.destinationReached(not trgt_updated)
+	    print("Master stateref", state_ref)
             controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)#, ADCP_mean)
             u_thrust, u_rudder = controller.calc_control()
             motor_cmd.port = u_thrust

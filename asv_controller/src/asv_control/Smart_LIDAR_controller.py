@@ -40,7 +40,9 @@ class Smart_LiDAR_Controller(Generic_Controller):
         elif (not (rospy.get_param('smart/idle', False) or self.destReached)) and self.goback_bool:
             self.state = self.goback_state
             self.goback_bool = False
-
+	if rospy.get_param('restart', False):
+	    self.state = Start()
+	    rospy.set_param('restart', False)
         self.state.update_controller_var(self.state_asv, self.state_ref, \
                 self.v_asv, self.target_index, self.wayPoints, self.current)
         self.state.controller.destinationReached(self.destReached)
@@ -71,7 +73,7 @@ class Start(State):
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
         dist = math.sqrt((self.controller.state_ref[0] - self.controller.state_asv[0])**2 \
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
-
+	print('start: ', self.controller.state_ref[0], self.controller.state_ref[1])
         if dist < DIST_THRESHOLD:
             # return Hold()
             return Hold()
@@ -80,8 +82,8 @@ class Start(State):
 
     def calc_control(self):
         '''remember to update the controller before calling this'''
-        self.controller.state_ref[0] = self.xref
-        self.controller.state_ref[1] = self.yref
+       # self.controller.state_ref[0] = self.xref
+       # self.controller.state_ref[1] = self.yref
         return self.controller.calc_control()
 
 

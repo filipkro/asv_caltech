@@ -2,7 +2,7 @@
 /ADCP/reset: False #if true resets adcp mean calculations
 /ADCP/angleOff: 135 # offset of adcp angle (angle=adcp_angle+offset)
 /dist_threshold: 1.0 # distance_threshold to determine whether destination is reached
-/nav_mode: 'Waypoint' # Waypoint, Transect, Smart - determines which program to run
+/nav_mode: 'Smart' # Waypoint, Transect, Smart - determines which program to run
 /run: False # if true runs chosen program, else holds position
 
 /v_ref: 0.5 # linear reference velocity
@@ -37,3 +37,4 @@
 /dist_downstream: 5.0 # distance to reference point on the way back home
 /max_distance: 7.0 # max distance traveled in Explore state
 /lidar_offset: 0.0 # lidar angle offset relative to the asv
+/motor_control/sim: True
