@@ -28,6 +28,8 @@ ADCP_mean = [0.0, 0.0, 0.0] # [sum of average, num_samples, mean]
 
 # controllers
 smart_controller = Smart_LiDAR_Controller()
+transect_contr = transect_controller.Transect_controller()
+PI_contr = PI_controller.PI_controller()
 
 ########################
 ## Callback funcitons ##
@@ -81,7 +83,7 @@ def ADCP_callb(msg): # simulation, not accurate
         current[1] = ADCP_mean[2]
 
 def ADCP_callb2(msg):
-    global current, ADCP_mean
+    global current, ADCP_mean, state_asv
     data = msg.data
     calc_mean = rospy.get_param('ADCP/mean', False)
 
@@ -105,6 +107,8 @@ def ADCP_callb2(msg):
 
         current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2)
         current[1] = ADCP_mean[2]
+
+    current[1] = state_asv[2]
 
 def s16(value):
     return -(value & 0x8000) | (value & 0x7fff)
@@ -214,14 +218,14 @@ def switchControl():
     global smart_controller, ranges, lidar_inc
     controller_type = rospy.get_param('/nav_mode', 'Waypoint')
     if (controller_type == "Waypoint"):
-        return PI_controller.PI_controller()
+        return PI_contr
     elif (controller_type == "Transect"):
-        return transect_controller.Transect_controller()
+        return transect_contr
     elif (controller_type == "Smart"):
         smart_controller.update_lidar(ranges, lidar_inc) # smart controlelr needs lidar
         return smart_controller
     else:
-        return PI_controller.PI_controller()
+        return PI_contr
 
 def angleDiff(angle):
     while angle > math.pi:
@@ -263,7 +267,8 @@ def main():
         rospy.logdebug('Target Index '+ str(target_index))
         trgt_updated = updateTarget()
         print(rospy.get_param('/nav_mode'))
-
+        print('current angle', current[1])
+        print('heading', state_asv[2])
         if run and trgt_updated:
             controller.destinationReached(not trgt_updated)
             controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)#, ADCP_mean)
@@ -315,14 +320,19 @@ def main():
                         id += 1
 
                     pub_trans.publish(transects)
+            # elif rospy.get_param('/nav_mode', 'Waypoint') == "Transect":
+            #     print('v cnt in master', controller.v_update_count)
         else:
         #    controller.destinationReached(not trgt_updated)
             controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)#, ADCP_mean)
             controller.destinationReached(True)
             u_thrust, u_rudder = controller.calc_control()
+            if np.isnan(u_thrust):
+                u_thrust = 0.0
             motor_cmd.port = u_thrust
             motor_cmd.strboard = u_thrust
             motor_cmd.servo = u_rudder
+
 
         rospy.logdebug('MotorCmd ' + str(motor_cmd))
         print('motorcmnd (in master):', motor_cmd)

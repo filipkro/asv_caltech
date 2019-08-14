@@ -33,7 +33,7 @@ class Transect_controller(Generic_Controller):
         self.K_v = rospy.get_param('/transect/K_v', 0.5) # vertical speed gain
         self.K_t = rospy.get_param('transect_thrust/K', 10.0)
         self.K_latAng = rospy.get_param('/transect/K_latAng', 0.5) # lateral speed to angle
-        self.Kp_turn = rospy.get_param('/transect/Kp_turn', 200) # turning gain for heading
+        self.Kp_turn = rospy.get_param('/transect/Kp_turn', 200.0) # turning gain for heading
         self.v_x_des = rospy.get_param('/transect/speed_ref', 0.5)
         self.DIST_THRESHOLD = rospy.get_param('/transect/dist_thres', 1.0) #unused
         self.ang_update_rate = rospy.get_param('/transect/ang_update_rate', 1)
@@ -53,19 +53,27 @@ class Transect_controller(Generic_Controller):
 
         rospy.logdebug('Last point ' + str(self.last_point))
         rospy.logdebug('Point now ' + str(self.state_ref))
-
+        print('state ref', self.state_ref)
         u_rudder = 1600
         self.v_update_rate = rospy.get_param('/transect/v_update_rate', 1)
         self.ang_update_rate = rospy.get_param('/transect/ang_update_rate', 1)
+        print('v cnt', self.v_update_count)
+        print('v rate', self.v_update_rate)
         if self.v_update_count >= self.v_update_rate:
             v_vert, u_nom = self.vertical_speed_control()
             self.last_v_des = v_vert
             self.last_u_nom = u_nom
             self.v_update_count = 0
+            print('HEREERE', u_nom)
         else:
             self.v_update_count += 1
             v_vert = self.last_v_des
             u_nom = self.last_u_nom
+
+            print('not updating', u_nom)
+
+        print('v cnt after', self.v_update_count)
+        print('v rate after', self.v_update_rate)
 
         if self.ang_update_count >= self.ang_update_rate:
             ang_des = self.calc_lateral_ang()

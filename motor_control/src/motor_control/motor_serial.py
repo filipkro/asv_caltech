@@ -11,6 +11,7 @@ from std_msgs.msg import Float32MultiArray
 from roboteq_msgs.msg import Command
 from gps_reader.msg import GPS_WayPoints
 from sensor_msgs.msg import Joy
+import numpy as np
 
 strboard_ser = None
 port_ser = None
@@ -64,6 +65,7 @@ def joy_callback(data):
     starboard_cmd = rightStick_y * 1000
     servo_cmd = leftStick_x * (1834 - 1195)/2 + 1600
 
+    servo_cmd = np.clip(servo_cmd, 1195, 1834)
     
     update_cmd(port_cmd, starboard_cmd, servo_cmd)
 
