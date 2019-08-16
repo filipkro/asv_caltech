@@ -148,8 +148,8 @@ def update_state(msg):
     update_lidar()
     setup_walls()
 
-    uR = msg.strboard/100.0
-    uL = msg.port/100.0
+    uR = -msg.strboard/100.0
+    uL = -msg.port/100.0
 
     rudder = msg.servo
 

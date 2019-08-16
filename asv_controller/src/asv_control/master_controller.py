@@ -177,13 +177,13 @@ def create_wpList():
 
     point = GPS_data()
     list = []
-    point.x = 1.0
+    point.x = -5.0
     point.y = 0.0
     wayPoints.append(point)
 
     point = GPS_data()
     point.x = 5.0
-    point.y = 2.0
+    point.y = 0.0
     wayPoints.append(point)
 
     point = GPS_data()
@@ -205,6 +205,9 @@ def create_wpList():
     point.x = 0.0
     point.y = 0.0
     wayPoints.append(point)
+
+    state_ref[0] = wayPoints[0].x
+    state_ref[1] = wayPoints[1].y
 
 def navGoal_callb(msg):
     ''' reference state update. Specifically for Rviz'''
@@ -264,6 +267,8 @@ def main():
     ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
 
     rate = rospy.Rate(1/h)
+
+    create_wpList()
 
     while not rospy.is_shutdown():
         # Master control param

@@ -57,23 +57,16 @@ class Transect_controller(Generic_Controller):
         u_rudder = 1600
         self.v_update_rate = rospy.get_param('/transect/v_update_rate', 1)
         self.ang_update_rate = rospy.get_param('/transect/ang_update_rate', 1)
-        print('v cnt', self.v_update_count)
-        print('v rate', self.v_update_rate)
+
         if self.v_update_count >= self.v_update_rate:
             v_vert, u_nom = self.vertical_speed_control()
             self.last_v_des = v_vert
             self.last_u_nom = u_nom
             self.v_update_count = 0
-            print('HEREERE', u_nom)
         else:
             self.v_update_count += 1
             v_vert = self.last_v_des
             u_nom = self.last_u_nom
-
-            print('not updating', u_nom)
-
-        print('v cnt after', self.v_update_count)
-        print('v rate after', self.v_update_rate)
 
         if self.ang_update_count >= self.ang_update_rate:
             ang_des = self.calc_lateral_ang()
