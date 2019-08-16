@@ -26,11 +26,14 @@ class PI_controller(Generic_Controller):
         self.h = 0.2
         self.V_REF = rospy.get_param('v_ref', 0.5)
         self.VEL_THRESHOLD = rospy.get_param('/v_threshold',0.2)
-        self.K_t = rospy.get_param('thrust/K', 1000.0)
-        self.Ti_t = rospy.get_param('thrust/Ti', 1.0)
-        self.K_r = rospy.get_param('rudder/K', 500.0)
+        self.K_t = rospy.get_param('thrust/K', 500.0)
+        self.Ti_t = rospy.get_param('thrust/Ti', 10.0)
+        self.K_r = rospy.get_param('rudder/K', 200.0)
         self.Ti_r = rospy.get_param('rudder/Ti', 10.0)
         self.v_robotX = 0.0
+
+    def d2t(self):
+        return math.sqrt((self.state_asv[0] - self.state_ref[0])**2 + (self.state_asv[1] - self.state_ref[1])**2)
 
     # TODO: maybe make this an abstract method for generic controller
     def calc_control(self):
@@ -92,12 +95,16 @@ class PI_controller(Generic_Controller):
                 '''else use GPS'''
                 ang_dir = self.v_asv[2]
 
-            if abs(self.angleDiff(des_angle + math.pi - self.current[1])) \
-                                 < math.pi/2 and self.current[0] > 0.1:
+            if abs(self.angleDiff(des_angle - self.current[1])) > math.pi/2 \
+                                and self.current[0] > 0.2:
                 '''if goal point is downstream go towards it by floating with current'''
                 e_ang = self.angleDiff(math.pi - des_angle + ang_dir)
                 v_ref = -v_ref/2
                 rospy.logdebug("angle error " + str(e_ang))
+            elif abs(self.angleDiff(des_angle - self.current[1])) > math.pi/4 \
+                                and self.current[0] > 0.2 and self.d2t() < 3*rospy.get_param('/dist_threshold', 1.0):
+                v_ref = v_ref/2
+                e_ang = self.angleDiff(des_angle - ang_dir)
             else:
                 e_ang = self.angleDiff(des_angle - ang_dir)
 

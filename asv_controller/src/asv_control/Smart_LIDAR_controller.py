@@ -176,6 +176,7 @@ class Transect(State):
             self.transect_cnt += 1
 
             if self.transect_cnt > self.max_transect:
+
                 return Home(self.ranges, self.controller.state_asv, self.controller.current)
             if (self.direction):
                 self.target_index = 0
