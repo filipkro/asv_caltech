@@ -197,8 +197,6 @@ class Transect(State):
         else:
             return self
 
-
-
     def calc_control(self):
         '''remember to update the controller before calling this'''
         self.controller.wayPoints = self.wayPoints
