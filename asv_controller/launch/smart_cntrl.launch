@@ -43,8 +43,8 @@
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
 
     <!-- LIDAR -->	
-     <include file="$(find ouster_ros)/os1.launch"/>  
-<!--     <include file="$(find pointcloud_to_laserscan)/lidar_os.launch"/> -->
+    <!-- <include file="$(find ouster_ros)/os1.launch"/>  -->
+    <!-- <include file="$(find pointcloud_to_laserscan)/lidar_os.launch"/> -->
 
     <!-- Rosbag Recording -->
     <!-- <node

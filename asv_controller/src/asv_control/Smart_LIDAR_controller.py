@@ -163,7 +163,7 @@ class Transect(State):
             [self.p1, self.p2] = self.calculate_transect(current_angle)
             # IMPORTANT: Transect state disregard target_index, wayPoints information
             # from the top controller. It instead has its own
-            
+
             if self.direction:
                 self.target_index = 0
             else:
@@ -184,7 +184,6 @@ class Transect(State):
             self.transect_cnt += 1
             print('TURRNRRRRRRRNNRNRRRRRRRRRRRN')
             if self.transect_cnt > self.max_transect:
-                
                 return Home(self.ranges, self.controller.state_asv, self.controller.current)
             if (self.direction):
                 self.target_index = 0
@@ -197,8 +196,6 @@ class Transect(State):
                 return self
         else:
             return self
-
-
 
     def calc_control(self):
         '''remember to update the controller before calling this'''
@@ -296,7 +293,7 @@ class Transect(State):
             print('theta', state_asv[2])
             print('real theta_p', self.transect_angle)
             print('waypoints', wayPoints)
-           
+
 
         return len(close[0]) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
 
