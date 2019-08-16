@@ -77,8 +77,8 @@ class Start(State):
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
 
         if dist < DIST_THRESHOLD:
-            # return Explore(self.ranges)
-            return Hold()
+            return Explore(self.ranges)
+           # return Hold()
         else:
             return self
 
@@ -159,9 +159,11 @@ class Transect(State):
 
 
         if transect:
+            current_angle = self.controller.state_asv[2]
             [self.p1, self.p2] = self.calculate_transect(current_angle)
             # IMPORTANT: Transect state disregard target_index, wayPoints information
             # from the top controller. It instead has its own
+
             if self.direction:
                 self.target_index = 0
             else:
@@ -169,14 +171,19 @@ class Transect(State):
             self.wayPoints = [self.p1, self.p2]
 
     def on_event(self, event):
+        print('transect point', self.p1, self.p2)
+        #print('current angle...', current_angle)
+        print('TURNING... ', self.direction)
+
         if (rospy.get_rostime() - self.start_time).to_sec() > self.run_time:
+            print(self.start_time)
+            print((rospy.get_rostime() - self.start_time).to_sec() > self.run_time)
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
         elif self.too_close(self.direction):
             self.direction = not self.direction
             self.transect_cnt += 1
-
+            print('TURRNRRRRRRRNNRNRRRRRRRRRRRN')
             if self.transect_cnt > self.max_transect:
-
                 return Home(self.ranges, self.controller.state_asv, self.controller.current)
             if (self.direction):
                 self.target_index = 0
@@ -191,9 +198,12 @@ class Transect(State):
             return self
 
 
+
     def calc_control(self):
         '''remember to update the controller before calling this'''
         self.controller.wayPoints = self.wayPoints
+        print('way points in side state: ', self.wayPoints)
+        print('in state, p1 p2', self.p1, self.p2)
         self.controller.target_index = self.target_index
         return self.controller.calc_control()
 
@@ -222,6 +232,7 @@ class Transect(State):
            Output:
              [state, state]: two points on the line normal to theta_c '''
         state_asv = self.controller.state_asv
+        print(state_asv[2] - theta_c)
         point1 = Point()
         point2 = Point()
 
@@ -237,6 +248,8 @@ class Transect(State):
         point2.y = state_asv[1] + (distL + 10) * math.sin(theta_c + math.pi/2)
         point2.z = 0.0
 
+        self.transect_angle = theta_c - math.pi/2
+
         return [point1, point2]
 
     def too_close(self, dir):
@@ -245,12 +258,12 @@ class Transect(State):
         state_asv = self.controller.state_asv
         ranges = self.ranges
         inc = self.lidar_inc
-        wayPoints = self.controller.wayPoints
+        wayPoints = self.wayPoints # self.controller.wayPoints is overwritten every loop!
 
         self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
         dist_th = self.dist_th
 
-        theta_p = self.controller.angleDiff(np.arctan2(wayPoints[0].y \
+        theta_p = self.controller.angleDiff(math.atan2(wayPoints[0].y \
                             - wayPoints[1].y, wayPoints[0].x - wayPoints[1].x))
 
         #Look at an angle of pi/4 above and below transect point
@@ -273,6 +286,16 @@ class Transect(State):
             dists2 = ranges[np.arange(0, int((end_ang + math.pi)/inc))]
             dists = np.concatenate((dists1, dists2))
         close = np.nonzero(dists < dist_th)
+        if len(close[0]) > 10:
+            print('IN TO CLOSE')
+            print('dir', dir)
+            print('start_ang', start_ang)
+            print('end ang', end_ang)
+            print('theta_p', theta_p)
+            print('theta', state_asv[2])
+            print('real theta_p', self.transect_angle)
+            print('waypoints', wayPoints)
+
 
         return len(close[0]) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
 
@@ -409,7 +432,7 @@ class Explore(State):
     def on_event(self, event):
         self.update_ref()
         self.dist_travelled += self.controller.vel_robotX * 0.2
-        if self.dist_travelled > rospy.get_param('/max_distance', 7.0):
+        if self.dist_travelled > rospy.get_param('/max_distance', 10.0):
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
         else:
             return self
