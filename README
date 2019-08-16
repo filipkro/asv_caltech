@@ -1,0 +1,5 @@
+connect to lidar:
+sudo dnsmasq -C /dev/null -kd -F 192.168.1.50,192.168.1.80 -i eth0 --bind-dynamic
+
+wait for about 30s, until dnsmasq-dhcp: DHPACK(eth0) 192.168.1.78 .... os1XXXXXXXXX appears
+ctrl+C to quit that process.Now you should be connected (try it by ping 192.168.1.78)
