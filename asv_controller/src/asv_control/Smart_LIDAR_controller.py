@@ -77,8 +77,8 @@ class Start(State):
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
 
         if dist < DIST_THRESHOLD:
-            # return Explore(self.ranges)
-            return Hold()
+            return Explore(self.ranges)
+           # return Hold()
         else:
             return self
 
@@ -433,7 +433,7 @@ class Explore(State):
     def on_event(self, event):
         self.update_ref()
         self.dist_travelled += self.controller.vel_robotX * 0.2
-        if self.dist_travelled > rospy.get_param('/max_distance', 7.0):
+        if self.dist_travelled > rospy.get_param('/max_distance', 10.0):
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
         else:
             return self

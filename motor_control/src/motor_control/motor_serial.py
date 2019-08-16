@@ -61,8 +61,8 @@ def joy_callback(data):
     leftStick_x = data.axes[0]
     rightStick_y = data.axes[4]
 
-    port_cmd = leftStick_y * 1000
-    starboard_cmd = rightStick_y * 1000
+    port_cmd = -leftStick_y * 1000
+    starboard_cmd = -rightStick_y * 1000
     servo_cmd = leftStick_x * (1834 - 1195)/2 + 1600
 
     servo_cmd = np.clip(servo_cmd, 1195, 1834)
@@ -108,19 +108,22 @@ def angleDiff(angle):
 
     return angle
 
+def set_servo_straight():
+    servo_pub.publish(1600)
+    print('shutting down')
+
 def main():
     sim = rospy.get_param('/motor_control/sim', False)
 
-    if sim == True:
-        rospy.loginfo('YEET')
-    else:
-        setup_serial()
+    setup_serial()
 
     rospy.init_node('motor_controller')
     rospy.Subscriber('motor_controller/motor_cmd_reciever', MotorCommand, send_cmd_callback)
     rospy.Subscriber('cmd_vel', Twist, teleop_callback)
     rospy.Subscriber('imu', Float32MultiArray, imu_callback)
     rospy.Subscriber('joy', Joy, joy_callback)
+
+    rospy.on_shutdown(set_servo_straight)
 
     rate = rospy.Rate(50) # 50hz
     while not rospy.is_shutdown():
@@ -132,3 +135,4 @@ def main():
         # star_pub.publish(star_command)
 
         rate.sleep()
+    

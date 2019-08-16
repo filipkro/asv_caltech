@@ -52,7 +52,7 @@ def WP_callb(msg):
     wayPoints = msg.gps_wp
     rospy.loginfo(wayPoints)
     state_ref[0] = wayPoints[0].x
-    state_ref[1] = wayPoints[1].y
+    state_ref[1] = wayPoints[0].y
     target_index = 0
 
 def trans_broadcast():
@@ -92,9 +92,9 @@ def ADCP_callb2(msg):
     v_surface = v_rel_surface - v_bt
     v_angle = math.atan2(v_surface[1], v_surface[0])
 
-    adcp_offset = rospy.get_param('/ADCP/angleOff', 135)
+    adcp_offset = rospy.get_param('/ADCP/angleOff', 300.0) / 180.0 * math.pi +math.pi
     v_angle = angleDiff(v_angle+adcp_offset)
-    current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2)
+    current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2) / 1000.0
     current[1] = v_angle
     if calc_mean:
         if rospy.get_param('/ADCP/reset', False):
@@ -108,7 +108,6 @@ def ADCP_callb2(msg):
         current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2)
         current[1] = ADCP_mean[2]
 
-    current[1] = state_asv[2]
 
 def s16(value):
     return -(value & 0x8000) | (value & 0x7fff)
@@ -130,6 +129,7 @@ def updateTarget():
 
     DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
     control_mode = rospy.get_param('/nav_mode', 'Waypoint')
+    print("distance to target", dist_2_target)
     # if we're close to our target then do different things depends on which
     # controller we're running
     if (dist_2_target <= DIST_THRESHOLD and control_mode != 'Smart'):
@@ -144,6 +144,7 @@ def updateTarget():
                 rospy.loginfo('Destination reached')
                 return False
         elif control_mode == 'Transect':
+            print('in transect reached')
             if (len(wayPoints) <= 1):
                 rospy.loginfo('Not enough points for transect')
                 rospy.set_param('/nav_mode', 'Waypoint')
@@ -208,10 +209,17 @@ def create_wpList():
 def navGoal_callb(msg):
     ''' reference state update. Specifically for Rviz'''
     global wayPoints, state_ref
+    wayPoints = []
+
     point = msg.pose.position
     state_ref[0] = point.x
     state_ref[1] = point.y
     state_ref[2] = point.z
+
+    wp = GPS_data()
+    wp.x = point.x
+    wp.y = point.y
+    wayPoints.append(point)
 
 def switchControl():
     '''Choose the right controller'''
@@ -256,7 +264,6 @@ def main():
     ctrl_pub = rospy.Publisher('motor_controller/motor_cmd_reciever', MotorCommand, queue_size=1)
 
     rate = rospy.Rate(1/h)
-    create_wpList()
 
     while not rospy.is_shutdown():
         # Master control param

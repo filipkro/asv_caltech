@@ -8,6 +8,8 @@
     <remap from="vel" to="GPS/vel"/>
     <remap from="GPS_coord" to="GPS/xy_coord"/>
 
+    <rosparam file="$(find asv_controller)/src/field_test_param.yaml" command="load"/>
+
     <!-- Master Controller -->
     <node pkg="asv_controller" name="master_controller" type="master_control_node.py" output="screen">
       <rosparam file="$(find asv_controller)/src/field_test_param.yaml" command="load"/>
@@ -29,10 +31,6 @@
 
     <!--  GPS - GPX to XY -->
     <node pkg="gps_reader" name="gps_reader" type="GPS_node.py" output="screen">
-	<rosparam>
-           /originLat: 0.0
-           /originLon: 0.0
-        </rosparam>
     </node>
 
     <!-- GPS - Hardware Interface -->
@@ -45,7 +43,8 @@
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
 
     <!-- LIDAR -->	
-     <include file="$(find ouster_ros)/os1.launch"/> 
+    <!-- <include file="$(find ouster_ros)/os1.launch"/>  -->
+    <!-- <include file="$(find pointcloud_to_laserscan)/lidar_os.launch"/> -->
 
     <!-- Rosbag Recording -->
     <!-- <node
