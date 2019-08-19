@@ -77,8 +77,8 @@ class Start(State):
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
 
         if dist < DIST_THRESHOLD:
-            return Explore(self.ranges)
-           # return Hold()
+            # return Explore(self.ranges)
+            return Hold(self.controller.state_asv)
         else:
             return self
 
@@ -93,9 +93,11 @@ class Start(State):
 
 class Hold(State):
     '''Hold at the point until the asv figures out the current'''
-    def __init__(self):
+    def __init__(self, state_asv_prev):
         State.__init__(self)
         self.controller = PI_controller.PI_controller()
+        self.controller.state_asv = state_asv_prev
+        self.controller.state_ref = self.controller.state_asv
         self.start_time = rospy.get_rostime()
         self.waitTime = rospy.get_param('/hold/wait_time', 5.0)
 
@@ -115,15 +117,18 @@ class Hold(State):
 
 class Idle(State):
     'Holds position'
-    def __init__(self):
+    def __init__(self, state_asv_prev):
         State.__init__(self)
         self.controller = PI_controller.PI_controller()
+        self.controller.state_asv = state_asv_prev
+        self.controller.state_ref = self.controller.state_asv
 
     def on_event(self, event):
         return self
 
     def calc_control(self):
         self.controller.destinationReached(True)
+
         return self.controller.calc_control()
 
 class Transect(State):
@@ -131,7 +136,8 @@ class Transect(State):
 
     def __init__(self, last_controller=None, ranges=None, lidar_inc=None, transect = True, dir=False, trans_cnt=None):
         State.__init__(self)
-        self.controller = transect_controller.Transect_controller(controller=last_controller)
+        # self.controller = transect_controller.Transect_controller(controller=last_controller)
+        self.controller = PI_controller.PI_controller(controller=last_controller)
         if trans_cnt == None:
             self.transect_cnt = 0
             self.start_time = rospy.get_rostime()
@@ -156,13 +162,12 @@ class Transect(State):
         current = self.controller.current # fix the averaging
         current_angle = current[1]
 
-
-
         if transect:
-            current_angle = self.controller.state_asv[2]
             [self.p1, self.p2] = self.calculate_transect(current_angle)
             # IMPORTANT: Transect state disregard target_index, wayPoints information
             # from the top controller. It instead has its own
+            self.controller.transect = True
+            self.controller.theta_p = self.transect_angle
 
             if self.direction:
                 self.target_index = 0
@@ -203,6 +208,9 @@ class Transect(State):
         print('way points in side state: ', self.wayPoints)
         print('in state, p1 p2', self.p1, self.p2)
         self.controller.target_index = self.target_index
+        ref = self.calc_refPoint()
+        self.controller.state_ref[0] = ref[0]
+        self.controller.state_ref[1] = ref[1]
         return self.controller.calc_control()
 
     def get_distance(self, ang, nbr_of_points=5):
@@ -222,6 +230,22 @@ class Transect(State):
 
         # return mean of nbr_of_points (uneven) closest points
         return range_sum/(2*nbr+1)
+
+    def calc_refPoint(self):
+        '''calculates the reference points if PI controller is used for transects.
+            projects boats position onto transect line. ref point is point delta m
+            ahead of this point on the line.'''
+        pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
+        line = np.array([math.cos(self.transect_angle), math.sin(self.transect_angle)])
+        proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
+        print('proj', proj)
+        if self.direction:
+            ref = proj - rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
+        else:
+            ref = proj + rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
+        print('ref', ref)
+        return ref
+
 
     #Calculates two transect points (on land) creating a line perpendicular to current
     def calculate_transect(self, theta_c):
@@ -287,10 +311,10 @@ class Transect(State):
         if len(close[0]) > 10:
             print('IN TO CLOSE')
             print('dir', dir)
-            print('start_ang', start_ang)
-            print('end ang', end_ang)
-            print('theta_p', theta_p)
-            print('theta', state_asv[2])
+            # print('start_ang', start_ang)
+            # print('end ang', end_ang)
+            # print('theta_p', theta_p)
+            # print('theta', state_asv[2])
             print('real theta_p', self.transect_angle)
             print('waypoints', wayPoints)
 
@@ -421,11 +445,14 @@ class Explore(State):
     def __init__(self, lidar):
         State.__init__(self)
         self.ranges = lidar
+        print('lidar in explore', lidar)
         self.controller = PI_controller.PI_controller()
         self.dist_calc = self.dist_calc = Transect(last_controller=self.controller, ranges=self.ranges, \
                             lidar_inc=self.lidar_inc, transect=False)
         self.dist_travelled = 0.0
         self.update_ref()
+        if len(self.ranges) == 0:
+            self.ranges = [0]
 
     def on_event(self, event):
         self.update_ref()

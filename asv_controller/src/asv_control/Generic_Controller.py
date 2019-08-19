@@ -8,12 +8,12 @@ from abc import abstractmethod
 
 
 class Generic_Controller:
-    
+
     def __init__(self, state_asv=None, state_ref=None, v_asv=None, \
             wayPoints=None, target_index=0, destReached=True, current=None, \
-                controller=None):
-        # need to instantiate member like this for mutable member        
-        if state_asv == None:        
+                controller=None, trans_angle=None):
+        # need to instantiate member like this for mutable member
+        if state_asv == None:
             self.state_asv = [0,0,0]
         if state_ref == None:
             self.state_ref = [0,0,0]
@@ -23,7 +23,7 @@ class Generic_Controller:
             self.wayPoints = []
         if current == None:
             self.current = [0,0]
-        
+
         # Control variables and inputs (generic to all controller)
         self.state_asv = [0,0,0]
         self.state_ref = [0,0,0]
@@ -31,7 +31,7 @@ class Generic_Controller:
         self.wayPoints = []
         self.destReached = True
         self.current = [0,0]
-        
+
         # help pass data from the previous controller
         if controller != None:
             self.state_asv = controller.state_asv
@@ -40,7 +40,13 @@ class Generic_Controller:
             self.wayPoints = controller.target_index
             self.wayPoints = controller.wayPoints
             self.current = controller.current
-        
+
+        if trans_angle != None:
+            self.transect = True
+            self.theta_p = theta_trans
+        else:
+            self.transect = False
+
         # Control Parameters (specific to class)
 
     def update_variable(self, s_asv, s_ref, v, target_i, wP, curr):
@@ -61,8 +67,7 @@ class Generic_Controller:
         while angle < -math.pi:
             angle = angle + 2 * math.pi
         return angle
-    
+
     @abstractmethod
     def calc_control(self):
         pass
-
