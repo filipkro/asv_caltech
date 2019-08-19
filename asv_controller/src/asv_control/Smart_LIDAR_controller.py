@@ -35,7 +35,7 @@ class Smart_LiDAR_Controller(Generic_Controller):
         # Important some controllers might use their own info, such as Transect
         if (rospy.get_param('smart/idle', False) or self.destReached) and self.state.__str__() != "Idle":
             self.goback_state = self.state
-            self.state = Idle()
+            self.state = Idle(self.state.controller.state_asv)
             self.goback_bool = True
         elif (not (rospy.get_param('smart/idle', False) or self.destReached)) and self.goback_bool:
             self.state = self.goback_state
