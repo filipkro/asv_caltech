@@ -14,6 +14,7 @@ from Generic_Controller import Generic_Controller
 from visualization_msgs.msg import Marker, MarkerArray
 from std_msgs.msg import Float32MultiArray, String
 from geometry_msgs.msg import Point, PointStamped
+import random
 
 
 ########## Smart LiDAR controller state machine #######
@@ -89,8 +90,8 @@ class Start(State):
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
 
         if dist < DIST_THRESHOLD:
-            return Explore(self.ranges)
-            # return Hold(self.controller.state_asv)
+            # return Explore(self.ranges)
+            return Hold(self.controller.state_asv)
         else:
             return self
 
@@ -160,7 +161,7 @@ class Transect(State):
         self.max_transect = rospy.get_param('/transect/max_transect', 5)
         self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
         self.trans_per_upstr = self.transect_cnt + rospy.get_param('/upstream/cnt_per', 1) #number of full transects, 0 gives the first "half transect"
-        self.upstream = rospy.get_param('/upstream', False)
+        self.upstream = rospy.get_param('/upstream', True)
 
         self.transect_time_ref = 5.0
         self.direction = dir #False - look at shore to the left, True-look at shore to the right
@@ -250,11 +251,13 @@ class Transect(State):
         pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
         line = np.array([math.cos(self.transect_angle), math.sin(self.transect_angle)])
         proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
+        # delta = proj - pos
+        # print('delta', delta)
         print('proj', proj)
         if self.direction:
-            ref = proj - rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
+            ref = proj + self.transect_center - rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
         else:
-            ref = proj + rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
+            ref = proj + self.transect_center + rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
         print('ref', ref)
         return ref
 
@@ -269,6 +272,7 @@ class Transect(State):
         print(state_asv[2] - theta_c)
         point1 = Point()
         point2 = Point()
+        self.transect_center = [self.controller.state_asv[0], self.controller.state_asv[1]]
 
         # sample cerain number of points from the sides of the current angle
         distL = self.get_distance(theta_c + math.pi/2, 21)
@@ -294,7 +298,7 @@ class Transect(State):
         inc = self.lidar_inc
         wayPoints = self.wayPoints # self.controller.wayPoints is overwritten every loop!
 
-        self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
+        self.dist_th = rospy.get_param('/transect/dist_threshold', 5.0)
         dist_th = self.dist_th
 
         theta_p = self.controller.angleDiff(math.atan2(wayPoints[0].y \
@@ -356,7 +360,7 @@ class Upstream(State):
         self.dist_calc.ranges = self.ranges
         d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
         d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
-        dist_mid = (d_right - d_left)/rospy.get_param('/waypoint/fraction', 2)
+        dist_mid = (d_right - d_left)/rospy.get_param('/waypoint/fraction', 4)
 
         theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
         dist_upstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_upstream', 5.0)
@@ -427,6 +431,8 @@ class Home(State):
                         (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
         if dist < DIST_THRESHOLD:
+            print(dist)
+            print(DIST_THRESHOLD)
             return Finished()
         elif event == 'start_over':
             return Start()
@@ -457,7 +463,7 @@ class Explore(State):
     def __init__(self, lidar):
         State.__init__(self)
         self.ranges = lidar
-        
+
         self.start_time = rospy.get_rostime()
         print('lidar in explore', lidar)
         self.controller = PI_controller.PI_controller()
@@ -465,17 +471,30 @@ class Explore(State):
                             lidar_inc=self.lidar_inc, transect=False)
         self.dist_travelled = 0.0
         self.calc_pub = rospy.Publisher('/smart/calcs', Float32MultiArray, queue_size=10)
+        self.prev_point = 0
+        self.disc_point = 0
 
-        self.update_ref()
         if len(self.ranges) == 0:
             self.ranges = [0]
 
+        self.cnt = 0.0
+
+        self.update_ref()
+        # self.xref = self.prev_point[0]
+        # self.yref = self.prev_point[1]
+
+
+
+
 
     def on_event(self, event):
-        if self.d2t() < rospy.get_param('/dist_upstream', 5.0):
-            self.update_ref()
+        self.update_ref()
+        # if self.d2t() < rospy.get_param('/dist_upstream', 5.0):
+        #     self.xref = self.prev_point[0]
+        #     self.yref = self.prev_point[1]
         self.dist_travelled += self.controller.vel_robotX * 0.2
-        if (rospy.get_rostime() - self.start_time).to_sec() > rospy.get_param('/explore/max_time', 50.0) or rospy.get_param('go_home', False): #self.dist_travelled > rospy.get_param('/max_distance', 30.0):
+
+        if (rospy.get_rostime() - self.start_time).to_sec() > rospy.get_param('/explore/max_time', 20.0) or rospy.get_param('go_home', False): #self.dist_travelled > rospy.get_param('/max_distance', 30.0):
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
         else:
             return self
@@ -489,18 +508,46 @@ class Explore(State):
         d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2, 21) #use average instead
         dist_mid = (d_right - d_left)/rospy.get_param('/waypoint/fraction', 2)
         theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
-        dist_upstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_upstream', 5.0)
+        dist_upstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_upstream', 2.0)
         theta_dest = self.controller.angleDiff(theta_p + np.sign(dist_upstream*dist_mid)*(math.atan2(abs(dist_upstream), abs(dist_mid))))
         dist = math.sqrt(dist_mid**2 + dist_upstream**2)
+
         self.xref = self.controller.state_asv[0] + dist * math.cos(theta_dest)
         self.yref = self.controller.state_asv[1] + dist * math.sin(theta_dest)
 
+        # self.filter_ref([xref, yref])
+        #
+        # self.xref = self.prev_point[0]
+        # self.yref = self.prev_point[1]
+
         cals_msg.data = [d_left, d_right, dist_mid, theta_p, theta_dest, self.xref, self.yref]
         self.calc_pub.publish(cals_msg)
-     
+
 
     def d2t(self):
         return math.sqrt((self.controller.state_asv[0] - self.xref)**2 + (self.controller.state_asv[1] - self.yref)**2)
+
+    def get_dist(self, p1, p2):
+        return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
+
+    def filter_ref(self, new_point):
+        if self.prev_point == 0:
+            self.prev_point = new_point
+        elif self.get_dist(self.prev_point, new_point) <= rospy.get_param('explore/filter', 1.0):
+            self.prev_point = new_point
+            print('FORSTA')
+        # elif self.disc_point == 0:
+        #     self.disc_point = new_point
+        # elif self.get_dist(self.disc_point, new_point) <= 1.0:
+        # else:
+        #     prev_disc = self.disc_point
+        #     self.disc_point = new_point
+        #     if self.get_dist(new_point, prev_disc) <= 1.0:
+        #         self.disc_point = self.prev_point
+        #         self.prev_point = new_point
+        #
+        #     print('SISTA')
+
 
 
     def calc_control(self):

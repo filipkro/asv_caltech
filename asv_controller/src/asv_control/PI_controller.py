@@ -126,8 +126,8 @@ class PI_controller(Generic_Controller):
                 '''else use GPS'''
                 ang_dir = self.v_asv[2]
 
-            if self.d2t() < rospy.get_param('/d2t', 3.0):
-                lin_factor = (self.d2t() - self.dist_threshold)/rospy.get_param('/d2t', 3.0)
+            if self.d2t() < rospy.get_param('/d2t', 1.5):
+                lin_factor = (self.d2t() - self.dist_threshold)/rospy.get_param('/d2t', 1.5)
                 v_ref = lin_factor * v_ref
                 lin_v = True
                 print('in lin', lin_factor)
