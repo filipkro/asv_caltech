@@ -16,7 +16,7 @@
 /rudder/Ti: 10.0 # integral gain in rudder controller
 
 /transect/K_v: 0.2 # vertical speed gain
-/transect_thrust/K: 600.0
+/transect_thrust/K: 1000.0
 /transect/K_latAng: 0.3 # lateral speed angle
 /transect/Kp_turn: 800 # turning gain for heading
 /transect/speed_ref: 0.5

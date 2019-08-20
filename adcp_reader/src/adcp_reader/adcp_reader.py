@@ -169,7 +169,7 @@ def extract_data(all_data):
     roll = s16(int(''.join(reversed(all_data[variable_offset+20:variable_offset+22])).encode('hex'),16)) # degree
     salinity = int(''.join(reversed(all_data[variable_offset+24:variable_offset+26])).encode('hex'),16) # 0 to 40 ppm
     temperature = int(''.join(reversed(all_data[variable_offset+26:variable_offset+28])).encode('hex'),16) # degree
-    print('HEADING', heading)
+    # print('HEADING', heading)
     # VELOCITY PROFILE
     velocity_profile_offset = offsets[2]
     relative_velocities = []

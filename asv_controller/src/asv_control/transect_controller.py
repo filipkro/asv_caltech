@@ -111,7 +111,7 @@ class Transect_controller(Generic_Controller):
         # calculate velocity away from the line
         v_ang_from_line = self.angleDiff(self.state_asv[2] - line_angle) # v_vector and line
         v_course = math.sqrt(self.v_asv[0]**2 + self.v_asv[1]**2)
-        drift_v = v_course * math.sin(v_ang_from_line)
+        drift_v = -v_course * math.sin(v_ang_from_line)
 
         # heading vector from line
         heading_from_line = self.angleDiff(self.state_asv[2] - line_angle)

@@ -164,7 +164,8 @@ class PI_controller(Generic_Controller):
                                             self.current[1] + lin_factor*math.pi/2)
                 # e_ang = self.angleDiff(math.pi - des_angle + ang_dir)
                 # v_ref = -v_ref/2
-                v_ref = -abs(0.5 * v_ref * math.sin(des_angle_downstream))
+                v_ref = -abs(0.5 * v_ref * math.cos(self.current[1] - des_angle_downstream))
+                print('v_ref', v_ref)
                 # rospy.logdebug("angle error " + str(e_ang))
                 # self.downstream = True
                 '''transform velocities to error coordinate frame'''
@@ -197,9 +198,9 @@ class PI_controller(Generic_Controller):
             #     e_ang = self.angleDiff(des_angle - ang_dir)
             #     self.downstream = False
 
-            if abs(self.angleDiff(self.current[1] + math.pi - self.state_asv[2])) < 0.05 \
-                        and abs(self.current[0] - self.V_REF) < 0.1:
-                v_ref -= 0.25
+            # if abs(self.angleDiff(self.current[1] + math.pi - self.state_asv[2])) < 0.05 \
+            #             and abs(self.current[0] - self.V_REF) < 0.1:
+            #     v_ref -= 0.25
 
 
         # rot = np.array([[np.cos(ang_dir), np.sin(ang_dir)],
