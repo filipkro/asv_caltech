@@ -11,7 +11,9 @@ from std_msgs.msg import Float32MultiArray
 from roboteq_msgs.msg import Command
 from gps_reader.msg import GPS_WayPoints
 from sensor_msgs.msg import Joy
+from sensor_msgs.msg import Imu
 import numpy as np
+import tf
 
 strboard_ser = None
 port_ser = None
@@ -93,9 +95,20 @@ def update_cmd(port, starboard, servo):
         strboard_ser.write(starboard_command + b'\r\n')
         
 def imu_callback(msg):
-    offet = float(rospy.get_param('/motor_control/compass_offset', 0.0))
-    theta = angleDiff(msg.data[8] - 109.0/180.0 * math.pi)
+    offet = float(rospy.get_param('/motor_control/compass_offset', 109.0))
+    theta = angleDiff(msg.data[8] - offet * math.pi)
     heading_pub.publish(theta)
+
+def imu_lidar_callback(msg):
+    offet = float(rospy.get_param('/lidar_imu_offset', 0.0))
+    quat = msg.orientation
+    quaternion = [quat.x, quat.y, quat.z, quat.w]
+    euler =  tf.transformations.euler_from_quaternion(quaternion)
+    roll = euler[0]
+    pitch = euler[1]
+    yaw = euler[2]
+    print(roll, pitch , yaw)
+    
 
 def test_callback(msg):
     print("I GOT THE MESSAGE")
@@ -122,6 +135,7 @@ def main():
     rospy.Subscriber('cmd_vel', Twist, teleop_callback)
     rospy.Subscriber('imu', Float32MultiArray, imu_callback)
     rospy.Subscriber('joy', Joy, joy_callback)
+    rospy.Subscriber('os1/imu', Imu, imu_lidar_callback)
 
     rospy.on_shutdown(set_servo_straight)
 
