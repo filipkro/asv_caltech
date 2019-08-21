@@ -161,7 +161,7 @@ class Transect(State):
         self.max_transect = rospy.get_param('/transect/max_transect', 5)
         self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
         self.trans_per_upstr = self.transect_cnt + rospy.get_param('/upstream/cnt_per', 1) #number of full transects, 0 gives the first "half transect"
-        self.upstream = rospy.get_param('/upstream', True)
+        self.upstream = rospy.get_param('/upstream', False)
 
         self.transect_time_ref = 5.0
         self.direction = dir #False - look at shore to the left, True-look at shore to the right
@@ -253,10 +253,17 @@ class Transect(State):
         proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
         # delta = proj - pos
         # print('delta', delta)
+        # transect_center = [self.controller.state_asv[0], self.controller.state_asv[1]]
         print('proj', proj)
         if self.direction:
-            ref = proj + self.transect_center - rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
+            pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
+            line = np.array([math.cos(self.transect_angle + math.pi), math.sin(self.transect_angle + math.pi)])
+            proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
+            ref = proj + self.transect_center + rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
         else:
+            pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
+            line = np.array([math.cos(self.transect_angle), math.sin(self.transect_angle)])
+            proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
             ref = proj + self.transect_center + rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
         print('ref', ref)
         return ref
