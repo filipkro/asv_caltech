@@ -17,7 +17,7 @@
 
     <!-- Motor command distributor -->
     <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
-        <param name="sim" value="False"/>
+        <param name="sim" value="True"/>
         <param name='compass_offset' value='109.0'/>
     </node>
    
@@ -52,14 +52,14 @@
 
     <!-- LIDAR -->	
     <include file="$(find ouster_ros)/os1.launch"/> 
-    <include file="$(find pointcloud_to_laserscan)/lidar_os.launch"/>
+<!--    <include file="$(find pointcloud_to_laserscan)/lidar_os.launch"/> -->
 
     <!-- Rosbag Recording -->
-    <!-- <node
+     <node
 	pkg="rosbag"
 	name="record_odometry"
 	type="record"
-	args="/GPS/xy_coord /adcp/data /sensors/imu /GPS/fix /os1_cloud_node/points /os1_cloud_node/imu -o /media/nvidia/51E77A0927E4AE03/Data"
-    />  -->
+	args="/GPS/xy_coord /heading /move_base_simple/goal /transect /smart/state /ref/point /smart/calcs  /adcp/data /sensors/imu /GPS/fix /os1_cloud_node/points /os1_cloud_node/imu -o /media/nvidia/37A33B8748E7DD2A/Data"
+    />  
 
 </launch>

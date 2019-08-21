@@ -4,6 +4,7 @@ import serial
 import rospy
 import math
 from motor_control.msg import MotorCommand
+from motor_control.msg import Arduino_imu
 from geometry_msgs.msg import Twist
 from std_msgs.msg import UInt32
 from std_msgs.msg import Float32
@@ -96,7 +97,7 @@ def update_cmd(port, starboard, servo):
         
 def imu_callback(msg):
     offet = float(rospy.get_param('/motor_control/compass_offset', 109.0))
-    theta = angleDiff(msg.data[8] - offet * math.pi)
+    theta = angleDiff(msg.data[8] - offet / 180.0 * math.pi)
     heading_pub.publish(theta)
 
 def imu_lidar_callback(msg):
@@ -133,7 +134,7 @@ def main():
     rospy.init_node('motor_controller')
     rospy.Subscriber('motor_controller/motor_cmd_reciever', MotorCommand, send_cmd_callback)
     rospy.Subscriber('cmd_vel', Twist, teleop_callback)
-    rospy.Subscriber('imu', Float32MultiArray, imu_callback)
+    rospy.Subscriber('imu', Arduino_imu, imu_callback)
     rospy.Subscriber('joy', Joy, joy_callback)
     rospy.Subscriber('os1/imu', Imu, imu_lidar_callback)
 

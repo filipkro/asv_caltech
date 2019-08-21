@@ -38,8 +38,8 @@ def setup_adcp():
     print("Angle offset message: ", s)
 
     time_stamp = datetime.datetime.now().replace(microsecond=0).strftime('%y-%m-%d %H.%M.%S')
-    #adcp_filename = '/home/filip/Documents/SURF/asv_ws/src/bagfiles' + time_stamp + ".bin"
-    #adcp_f = open(adcp_filename, 'wb')
+    adcp_filename = '/media/nvidia/37A33B8748E7DD2A/Data/ADCP' + time_stamp + ".bin"
+    adcp_f = open(adcp_filename, 'wb')
 
 def send_ADCP(command):
     '''send a command to adcp and return the response'''
@@ -108,7 +108,7 @@ def read_ensemble(verbose=False):
 
     #read data to file
     all_data = b'\x7f\x7f' + num_bytes + data + checksum
-   # adcp_f.write(all_data)
+    adcp_f.write(all_data)
 
     # current_state = [self.state_est.x, self.state_est.y, self.state_est.theta, self.state_est.roll, self.state_est.pitch, self.state_est.v_course, self.state_est.ang_course]
     # current_state_str = "$STATE," + ",".join(map(str,current_state)) + "###"
@@ -279,6 +279,7 @@ def main():
 
     stop_ping()
     adcp_ser.close()
+    adcp_f.close()
         # self.adcp_f.close()
         # if self.log_data == True:
         #     self.all_data_f.close()

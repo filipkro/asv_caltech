@@ -5,10 +5,10 @@
 #include <Arduino.h>
 #include <ros.h>
 #include <std_msgs/String.h>
-#include <std_msgs/Float32MultiArray.h>
+//#include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt32.h>
 #include <Servo.h> 
-
+#include <motor_control/Arduino_imu.h>
 
 // Note: This sketch is a WORK IN PROGRESS
 
@@ -76,7 +76,8 @@ Mahony filter;
 #define SERVO_MAX 1834 // turning right
 
 ros::NodeHandle  nh;
-std_msgs::Float32MultiArray imu_msg;
+//std_msgs::Float32MultiArray imu_msg;
+motor_control::Arduino_imu imu_msg;
 std_msgs::UInt32 servo_cmd;
 ros::Publisher imu_pub("imu", &imu_msg);
 
@@ -193,6 +194,7 @@ void loop(void)
   imu_data[8] = filter.getYawRadians();
   
   imu_msg.data = imu_data;
+  imu_msg.header.stamp = nh.now();
   imu_pub.publish(&imu_msg);
   nh.spinOnce();
   delay(10);
