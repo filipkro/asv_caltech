@@ -30,12 +30,12 @@
 /dist_threshold: 1.0 #, same as in master_controller
 /hold/wait_time: 5.0 #, time (s) to hold position for mean ADCP calculation in hold state
 /transect/run_time: 500.0 #, time from start of transects until boat returns home
-/transect/max_transect: 6 # number of transects made before returning home
+/transect/max_transect: 10 # number of transects made before returning home
 /transect/dist_threshold: 10.0 # distance threshold to shore during transects
 /upstream: False #, if True travels upstream between transects else makes transects at same place
 /upstream/cnt_per: 2 # number of transects before going upstream if upstream is activated
-/waypoint/fraction: 4 # where waypoint is placed upstream if upstream is activated. 2-middle, 3-one third from the shore currently at
-/dist_upstream: 15.0 # distance between transects if upstream is activated
+/waypoint/fraction: 3 # where waypoint is placed upstream if upstream is activated. 2-middle, 3-one third from the shore currently at
+/dist_upstream: 10.0 # distance between transects if upstream is activated
 /home/x: 0.0 # home x position
 /home/y: 0.0 # home y position
 /dist_downstream: 5.0 # distance to reference point on the way back home
