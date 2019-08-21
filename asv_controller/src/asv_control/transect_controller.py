@@ -109,9 +109,9 @@ class Transect_controller(Generic_Controller):
         drift_distance = dist * math.sin(pos_ang_from_line)
 
         # calculate velocity away from the line
-        v_ang_from_line = self.angleDiff(self.state_asv[2] - line_angle) # v_vector and line
+        v_ang_from_line = self.angleDiff(self.v_asv[2] - line_angle) # v_asv[2]?????????!!!!!!
         v_course = math.sqrt(self.v_asv[0]**2 + self.v_asv[1]**2)
-        drift_v = -v_course * math.sin(v_ang_from_line)
+        drift_v = v_course * math.sin(v_ang_from_line)    # remove negative sign>|?????!
 
         # heading vector from line
         heading_from_line = self.angleDiff(self.state_asv[2] - line_angle)

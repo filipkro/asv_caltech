@@ -340,7 +340,6 @@ def main():
             motor_cmd.strboard = u_thrust
             motor_cmd.servo = u_rudder
 
-
         rospy.logdebug('MotorCmd ' + str(motor_cmd))
         print('motorcmnd (in master):', motor_cmd)
         ctrl_pub.publish(motor_cmd)

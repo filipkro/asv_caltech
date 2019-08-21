@@ -57,7 +57,7 @@ class PI_controller(Generic_Controller):
         vel_robot = np.matmul(rot, vel_unrot)
         self.vel_robotX = vel_robot[0]
 
-        if rospy.get_param('/I/reset', False):
+        if rospy.get_param('/I/reset', False): #or not rospy.get_param('/motor_control/sim', True):
             self.I_rudder = 0.0
             self.I_thrust = 0.0
 
@@ -258,8 +258,8 @@ class PI_controller(Generic_Controller):
     def rudder_control(self,e_ang):
         ##########################
         ### Control parameters ###
-        MAX_RUDDER = 1834
-        MIN_RUDDER = 1195
+        MAX_RUDDER = 1833
+        MIN_RUDDER = 1196
 
         '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
 

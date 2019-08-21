@@ -147,10 +147,10 @@ class Idle(State):
 class Transect(State):
     '''Perform transect on the spot'''
 
-    def __init__(self, last_controller=None, ranges=None, lidar_inc=None, transect = True, dir=False, trans_cnt=None):
+    def __init__(self, last_controller=None, ranges=None, lidar_inc=None, transect = True, dir=True, trans_cnt=None):
         State.__init__(self)
-        # self.controller = transect_controller.Transect_controller(controller=last_controller)
-        self.controller = PI_controller.PI_controller(controller=last_controller)
+        self.controller = transect_controller.Transect_controller(controller=last_controller)
+        # self.controller = PI_controller.PI_controller(controller=last_controller)
         if trans_cnt == None:
             self.transect_cnt = 0
             self.start_time = rospy.get_rostime()
@@ -158,7 +158,7 @@ class Transect(State):
             self.transect_cnt = trans_cnt[0]
             self.start_time = trans_cnt[1]
         self.run_time = rospy.get_param('/transect/run_time', 300.0)
-        self.max_transect = rospy.get_param('/transect/max_transect', 5)
+        self.max_transect = rospy.get_param('/transect/max_transect', 2)
         self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
         self.trans_per_upstr = self.transect_cnt + rospy.get_param('/upstream/cnt_per', 1) #number of full transects, 0 gives the first "half transect"
         self.upstream = rospy.get_param('/upstream', False)
@@ -167,7 +167,7 @@ class Transect(State):
         self.direction = dir #False - look at shore to the left, True-look at shore to the right
         self.p1 = Point()
         self.p2 = Point()
-
+        self.last_turn = rospy.get_rostime()
         self.ranges = ranges
         self.lidar_inc = lidar_inc
 
@@ -192,16 +192,24 @@ class Transect(State):
         print('transect point', self.p1, self.p2)
         #print('current angle...', current_angle)
         print('TURNING... ', self.direction)
+        if self.direction:
+            angle = self.transect_angle
+        else:
+            angle = self.controller.angleDiff(self.transect_angle + math.pi)
 
-        if (rospy.get_rostime() - self.start_time).to_sec() > self.run_time:
+        dist = self.get_distance(angle, 41)
+        print('DISTANCE', dist)
+
+        if (rospy.get_rostime() - self.start_time).to_sec() > self.run_time:#or self.transect_cnt >= 2:
             print(self.start_time)
             print((rospy.get_rostime() - self.start_time).to_sec() > self.run_time)
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
-        elif self.too_close(self.direction):
+        elif dist < rospy.get_param('/transect/dist_threshold', 15.0): #self.too_close(self.direction):
             self.direction = not self.direction
+            self.last_turn = rospy.get_rostime()
             self.transect_cnt += 1
             print('TURRNRRRRRRRNNRNRRRRRRRRRRRN')
-            if self.transect_cnt > self.max_transect:
+            if self.transect_cnt >= self.max_transect:
                 return Home(self.ranges, self.controller.state_asv, self.controller.current)
             if (self.direction):
                 self.target_index = 0
@@ -248,24 +256,36 @@ class Transect(State):
         '''calculates the reference points if PI controller is used for transects.
             projects boats position onto transect line. ref point is point delta m
             ahead of this point on the line.'''
-        pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
-        line = np.array([math.cos(self.transect_angle), math.sin(self.transect_angle)])
-        proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
+        # pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
+        # line = np.array([math.cos(self.transect_angle), math.sin(self.transect_angle)])
+        # proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
         # delta = proj - pos
         # print('delta', delta)
-        # transect_center = [self.controller.state_asv[0], self.controller.state_asv[1]]
-        print('proj', proj)
+
+
+        # # print('proj', proj)
+        # if self.direction:
+        #     line = np.array([math.cos(self.transect_angle + math.pi), math.sin(self.transect_angle + math.pi)])
+        #     pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
+        #     proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
+        #     ref = proj + self.transect_center - rospy.get_param('/transect/delta_ref', 2.5) * line #make sure line is normalized
+        # else:
+        #     line = np.array([math.cos(self.transect_angle), math.sin(self.transect_angle)])
+        #     pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
+        #     proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
+        #     ref = proj + self.transect_center = rospy.get_param('/transect/delta_ref', 2.5) * line #make sure line is normalized
+
+
+        # print('IN CALC REF POINT')
+        # print('line', line)
+        # print('pos', pos)
+        # print('proj', proj)
+        # print('ref', ref)
+
         if self.direction:
-            pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
-            line = np.array([math.cos(self.transect_angle + math.pi), math.sin(self.transect_angle + math.pi)])
-            proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
-            ref = proj + self.transect_center + rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
+            ref = [self.p1.x, self.p1.y]
         else:
-            pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
-            line = np.array([math.cos(self.transect_angle), math.sin(self.transect_angle)])
-            proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
-            ref = proj + self.transect_center + rospy.get_param('/transect/delta_ref', 3.5) * line #make sure line is normalized
-        print('ref', ref)
+            ref = [self.p2.x, self.p2.y]
         return ref
 
 
@@ -305,7 +325,7 @@ class Transect(State):
         inc = self.lidar_inc
         wayPoints = self.wayPoints # self.controller.wayPoints is overwritten every loop!
 
-        self.dist_th = rospy.get_param('/transect/dist_threshold', 5.0)
+        self.dist_th = rospy.get_param('/transect/dist_threshold', 25.0)
         dist_th = self.dist_th
 
         theta_p = self.controller.angleDiff(math.atan2(wayPoints[0].y \
@@ -341,8 +361,10 @@ class Transect(State):
             print('real theta_p', self.transect_angle)
             print('waypoints', wayPoints)
 
-
-        return len(close[0]) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
+        if (rospy.get_rostime() - self.last_turn).to_sec() < 2.0:
+            return False
+        else:
+            return len(close[0]) > 10 #is this a reasonable way of doing it? now turns if more than 10 values are to close...
 
     def get_transect(self):
         return self.wayPoints
@@ -367,7 +389,7 @@ class Upstream(State):
         self.dist_calc.ranges = self.ranges
         d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2) #use average instead
         d_right = self.dist_calc.get_distance(self.controller.current[1] - math.pi/2) #use average instead
-        dist_mid = (d_right - d_left)/rospy.get_param('/waypoint/fraction', 4)
+        dist_mid = (d_right - d_left)/rospy.get_param('/waypoint/fraction', 3)
 
         theta_p = self.controller.current[1] - np.sign(dist_mid) * math.pi/2
         dist_upstream = np.sign(math.sin(self.controller.current[1])) * rospy.get_param('/dist_upstream', 5.0)
@@ -501,7 +523,7 @@ class Explore(State):
         #     self.yref = self.prev_point[1]
         self.dist_travelled += self.controller.vel_robotX * 0.2
 
-        if (rospy.get_rostime() - self.start_time).to_sec() > rospy.get_param('/explore/max_time', 20.0) or rospy.get_param('go_home', False): #self.dist_travelled > rospy.get_param('/max_distance', 30.0):
+        if (rospy.get_rostime() - self.start_time).to_sec() > rospy.get_param('/explore/max_time', 120.0) or rospy.get_param('go_home', False): #self.dist_travelled > rospy.get_param('/max_distance', 30.0):
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
         else:
             return self

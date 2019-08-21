@@ -1,7 +1,7 @@
 /ADCP/mean: False # if true calculates adcp mean
 /ADCP/reset: False #if true resets adcp mean calculations
 /ADCP/angleOff: 300.0 # offset of adcp angle (angle=adcp_angle+offset)
-/dist_threshold: 4.0 # distance_threshold to determine whether destination is reached
+/dist_threshold: 10.0 # distance_threshold to determine whether destination is reached
 /nav_mode: 'Smart' # Waypoint, Transect, Smart - determines which program to run
 /run: False # if true runs chosen program, else holds position
 
@@ -15,9 +15,9 @@
 /rudder/K: 100.0 # proportional gain in rudder controller (U(s) = E(s)*K(1+1/sTi))
 /rudder/Ti: 10.0 # integral gain in rudder controller
 
-/transect/K_v: 0.2 # vertical speed gain
+/transect/K_v: 0.4 # vertical speed gain
 /transect_thrust/K: 1000.0
-/transect/K_latAng: 0.3 # lateral speed angle
+/transect/K_latAng: 0.6 # lateral speed angle
 /transect/Kp_turn: 800 # turning gain for heading
 /transect/speed_ref: 0.5
 /transect/dist_thres: 1.0 # (unused ?)
@@ -29,13 +29,13 @@
 /start/y: 0.0 #, start y position
 /dist_threshold: 1.0 #, same as in master_controller
 /hold/wait_time: 5.0 #, time (s) to hold position for mean ADCP calculation in hold state
-/transect/run_time: 300.0 #, time from start of transects until boat returns home
-/transect/max_transect: 5 # number of transects made before returning home
-/transect/dist_threshold: 3.0 # distance threshold to shore during transects
+/transect/run_time: 500.0 #, time from start of transects until boat returns home
+/transect/max_transect: 6 # number of transects made before returning home
+/transect/dist_threshold: 10.0 # distance threshold to shore during transects
 /upstream: False #, if True travels upstream between transects else makes transects at same place
-/upstream/cnt_per: 1 # number of transects before going upstream if upstream is activated
-/waypoint/fraction: 2 # where waypoint is placed upstream if upstream is activated. 2-middle, 3-one third from the shore currently at
-/dist_upstream: 5.0 # distance between transects if upstream is activated
+/upstream/cnt_per: 2 # number of transects before going upstream if upstream is activated
+/waypoint/fraction: 4 # where waypoint is placed upstream if upstream is activated. 2-middle, 3-one third from the shore currently at
+/dist_upstream: 15.0 # distance between transects if upstream is activated
 /home/x: 0.0 # home x position
 /home/y: 0.0 # home y position
 /dist_downstream: 5.0 # distance to reference point on the way back home

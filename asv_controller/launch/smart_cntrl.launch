@@ -17,19 +17,19 @@
 
     <!-- Motor command distributor -->
     <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
-        <param name="sim" value="False"/>
+        <param name="sim" value="True"/>
         <param name='compass_offset' value='109.0'/>
     </node>
-
+   
     <!-- Arduino + Servo + IMU -->
     <node pkg="rosserial_python" name="ros_arduino" type="serial_node.py">
         <param name="port" value="/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_FFFFFFFFFFFF515B2503-if00"/>
     </node>
-
+    
     <!-- ADCP -->
     <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen"/>
 
-    <!--  GPS - GPX to XY -->
+     <!-- GPS - GPX to XY -->
     <node pkg="gps_reader" name="gps_reader" type="GPS_node.py" output="screen">
     </node>
 
@@ -37,21 +37,29 @@
     <node pkg="nmea_navsat_driver" name="navsat_driver" type="nmea_serial_driver" output="screen">
         <param name="port" value="/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller-if00-port0"/>
 	      <param name="baud" value="19200"/>
+    </node>  
+
+    <!-- IMU from lidar -->
+    <node pkg="imu_filter_madgwick" name="lidar_imu_filter" type="imu_filter_node" output="screen">
+        <param name="use_mag" value="false"/>
+        <param name="publish_debug_topic" value="true"/>
+        <remap from="imu/data_raw" to="os1_cloud_node/imu"/>
+        <remap from="imu/data" to="os1/imu"/>
     </node>
 
     <!-- Rosbridge for Remote Control -->
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
 
     <!-- LIDAR -->	
-    <!-- <include file="$(find ouster_ros)/os1.launch"/>  -->
-    <!-- <include file="$(find pointcloud_to_laserscan)/lidar_os.launch"/> -->
+    <include file="$(find ouster_ros)/os1.launch"/> 
+<!--    <include file="$(find pointcloud_to_laserscan)/lidar_os.launch"/> -->
 
     <!-- Rosbag Recording -->
-    <!-- <node
+     <node
 	pkg="rosbag"
 	name="record_odometry"
 	type="record"
-	args="/GPS/xy_coord /adcp/data /sensors/imu /GPS/fix /os1_cloud_node/points /os1_cloud_node/imu -o /media/nvidia/51E77A0927E4AE03/Data"
-    />  -->
+	args="/GPS/xy_coord /heading /move_base_simple/goal /transect /smart/state /ref/point /smart/calcs  /adcp/data /sensors/imu /GPS/fix /os1_cloud_node/points /os1_cloud_node/imu -o /media/nvidia/37A33B8748E7DD2A/Data"
+    />  
 
 </launch>

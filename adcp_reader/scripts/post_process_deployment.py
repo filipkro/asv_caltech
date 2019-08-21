@@ -7,12 +7,12 @@ import matplotlib.pyplot as plt
 
 print('loading...')
 # bag = rosbag.Bag('/media/nvidia/TOSHIBA EXT/Data/Data_2019-07-29-17-26-00.bag')
-bag = rosbag.Bag('~/Desktop/Data_2019-08-16-19-23-35.bag')
+bag = rosbag.Bag('/home/river/Desktop/Data_2019-08-16-19-23-35.bag')
 
-num_heading = bag.get_message_count('/imu')
+num_heading = bag.get_message_count('/sensors/imu')
 
 ang_imu = np.zeros(num_heading)
-
+t_imu = np.zeros(num_heading)
 
 def s16(value):
     ''' convert unsigned integer to signed integer'''
@@ -26,19 +26,20 @@ def angDiff(value):
     return value
     
 i = 0 # for imu
-for topic, msg, t in bag.read_messages(topics=['imu']):
+for topic, msg, t in bag.read_messages(topics=['/sensors/imu']):
     
-    if topic == '/imu':
-        ang_heading[i] == msg.data[8]
+    if topic == '/sensors/imu':
+        ang_imu[i] = msg.data[8]
+        t_imu[i] = t.to_sec()
         i=i+1
 
         
 
 # filter out the bad data
 # s_surface[s_surface >= 32768] = np.nan
-
+print(ang_imu.size)
 plt.figure(1)
-plt.plot(np.arange(0,num_heading, ang_heading))
+plt.plot(t_imu, ang_imu)
 # plt.plot(np.arange(0,num_msgs), s_surface,'b-o',label='surface speed')
 # plt.plot(np.arange(0,num_msgs), s_bt,'r-o',label='bt speed')
 # plt.plot(np.arange(0,num_msgs), s_surface - s_bt, 'g-o', label='current speed')
