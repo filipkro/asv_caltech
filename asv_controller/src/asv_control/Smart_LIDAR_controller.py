@@ -273,7 +273,6 @@ class Transect(State):
         #     proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
         #     ref = proj + self.transect_center = rospy.get_param('/transect/delta_ref', 2.5) * line #make sure line is normalized
 
-        
         # print('IN CALC REF POINT')
         # print('line', line)
         # print('pos', pos)

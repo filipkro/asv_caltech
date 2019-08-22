@@ -20,12 +20,12 @@
         <param name="sim" value="True"/>
         <param name='compass_offset' value='109.0'/>
     </node>
-   
+
     <!-- Arduino + Servo + IMU -->
     <node pkg="rosserial_python" name="ros_arduino" type="serial_node.py">
         <param name="port" value="/dev/serial/by-id/usb-Arduino_Srl_Arduino_Uno_FFFFFFFFFFFF515B2503-if00"/>
     </node>
-    
+
     <!-- ADCP -->
     <node pkg="adcp_reader" name="adcp_reader" type="adcp_reader_node.py" output="screen"/>
 
@@ -37,7 +37,7 @@
     <node pkg="nmea_navsat_driver" name="navsat_driver" type="nmea_serial_driver" output="screen">
         <param name="port" value="/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller-if00-port0"/>
 	      <param name="baud" value="19200"/>
-    </node>  
+    </node>
 
     <!-- IMU from lidar -->
     <node pkg="imu_filter_madgwick" name="lidar_imu_filter" type="imu_filter_node" output="screen">
@@ -50,8 +50,8 @@
     <!-- Rosbridge for Remote Control -->
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
 
-    <!-- LIDAR -->	
-    <include file="$(find ouster_ros)/os1.launch"/> 
+    <!-- LIDAR -->
+    <include file="$(find ouster_ros)/os1.launch"/>
 <!--    <include file="$(find pointcloud_to_laserscan)/lidar_os.launch"/> -->
 
     <!-- Rosbag Recording -->
@@ -59,7 +59,7 @@
 	pkg="rosbag"
 	name="record_odometry"
 	type="record"
-	args="/GPS/xy_coord /motor_controller/motor_cmd_reciever  /heading /move_base_simple/goal /transect /smart/state /ref/point /smart/calcs  /adcp/data /sensors/imu /GPS/fix /os1_cloud_node/points /os1_cloud_node/imu -o /media/nvidia/37A33B8748E7DD2A/Data"
-    />  
+	args="/GPS/xy_coord /motor_controller/motor_cmd_reciever /ref/point /heading /move_base_simple/goal /transect /smart/state /ref/point /smart/calcs /adcp/data /sensors/imu /GPS/fix /os1_cloud_node/points /os1_cloud_node/imu -o /media/nvidia/37A33B8748E7DD2A/Data"
+    />
 
 </launch>

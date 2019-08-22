@@ -5,10 +5,10 @@
 #include <Arduino.h>
 #include <ros.h>
 #include <std_msgs/String.h>
-#include <std_msgs/Float32MultiArray.h>
+//#include <std_msgs/Float32MultiArray.h>
 #include <std_msgs/UInt32.h>
 #include <Servo.h> 
-
+#include <motor_control/Arduino_imu.h>
 
 // Note: This sketch is a WORK IN PROGRESS
 
@@ -76,20 +76,25 @@ Mahony filter;
 #define SERVO_MAX 1834 // turning right
 
 ros::NodeHandle  nh;
-std_msgs::Float32MultiArray imu_msg;
+//std_msgs::Float32MultiArray imu_msg;
+motor_control::Arduino_imu imu_msg;
 std_msgs::UInt32 servo_cmd;
 ros::Publisher imu_pub("imu", &imu_msg);
 
 Servo myservo;
 int servoVal = 1600; // default is straight
+int counter = 0; // count the number of time since last update
 
 void servo_callback(const std_msgs::UInt32& msg) {
 //  imu_pub.publish(&imu_msg);
   if (msg.data >= SERVO_MIN && msg.data <= SERVO_MAX) {
+    servoVal = msg.data;
     myservo.writeMicroseconds(msg.data);
   } else {
+    servoVal = 1600;
     myservo.writeMicroseconds(1600);
   }
+  counter = 0;
 }
 
 ros::Subscriber<std_msgs::UInt32> servo_sub("servo_cmd", &servo_callback);
@@ -117,6 +122,15 @@ void setup()
 
 void loop(void)
 {
+  // write servo value, if there is not update for 
+  // 500 milliseconds, return servoVal to default
+  // position
+  myservo.writeMicroseconds(servoVal);
+  if(counter>50){ 
+    servoVal = 1600;
+  }
+  counter++;
+  
   sensor_t sensor;
   sensors_event_t gyro_event;
   sensors_event_t accel_event;
@@ -180,6 +194,7 @@ void loop(void)
   imu_data[8] = filter.getYawRadians();
   
   imu_msg.data = imu_data;
+  imu_msg.header.stamp = nh.now();
   imu_pub.publish(&imu_msg);
   nh.spinOnce();
   delay(10);

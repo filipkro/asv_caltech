@@ -1,0 +1,7 @@
+digraph G {
+"map" -> "os1_lidar"[label="Broadcaster: /play_1566006170928956064\nAverage rate: 10.167 Hz\nMost recent transform: 1566004748.630 ( 253448.732 sec old)\nBuffer length: 4.918 sec\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1566258197.362"[ shape=plaintext ] ;
+ }->"map";
+}
