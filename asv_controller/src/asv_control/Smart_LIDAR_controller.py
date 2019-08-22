@@ -161,7 +161,7 @@ class Transect(State):
         self.max_transect = rospy.get_param('/transect/max_transect', 2)
         self.dist_th = rospy.get_param('/transect/dist_threshold', 3.0)
         self.trans_per_upstr = self.transect_cnt + rospy.get_param('/upstream/cnt_per', 1) #number of full transects, 0 gives the first "half transect"
-        self.upstream = rospy.get_param('/upstream', True)
+        self.upstream = rospy.get_param('/upstream', False)
 
         self.transect_time_ref = 5.0
         self.direction = dir #False - look at shore to the left, True-look at shore to the right
@@ -261,6 +261,8 @@ class Transect(State):
         # proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
         # delta = proj - pos
         # print('delta', delta)
+
+
         # # print('proj', proj)
         # if self.direction:
         #     line = np.array([math.cos(self.transect_angle + math.pi), math.sin(self.transect_angle + math.pi)])
@@ -273,7 +275,7 @@ class Transect(State):
         #     proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
         #     ref = proj + self.transect_center = rospy.get_param('/transect/delta_ref', 2.5) * line #make sure line is normalized
 
-        
+
         # print('IN CALC REF POINT')
         # print('line', line)
         # print('pos', pos)

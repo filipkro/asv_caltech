@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 
 print('loading...')
-bag = rosbag.Bag('/media/nvidia/TOSHIBA EXT/Data/Data_2019-07-29-17-26-00.bag')
+bag = rosbag.Bag('/media/nvidia/TOSHIBA EXT/field_test200819pt5/Data_2019-08-16-15-05-12.bag')
 
 num_msgs = bag.get_message_count('/adcp/data')
 depths = np.zeros(num_msgs) #averaged over four beams
