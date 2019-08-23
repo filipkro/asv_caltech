@@ -83,7 +83,7 @@ $ sudo dnsmasq -C /dev/null -kd -F 192.168.1.50,192.168.1.80,100h -i eth0 --bind
 Wait for about 30s, until dnsmasq-dhcp: DHPACK(eth0) 192.168.1.78 .... os1XXXXXXXXX appears.
 You can now quit this process by ctrl+C in that terminal. Now you should be connected (try it by ping 192.168.1.78)
 
-## Run Smart program:
+## Run program:
 ssh into Jetson in at least two terminals:
 ```
 $ ssh nvidia@192.168.1.100
