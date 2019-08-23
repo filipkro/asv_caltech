@@ -102,7 +102,9 @@ In another terminal prompt:
 ```
 $ rosparam set /run True
 $ rosparam set /I/reset True
+```
   (the next command will start the vehicle)
+```
 $ rosparam set /motor_control/sim False
 $ rosparam set /I/reset False
 ```
