@@ -70,13 +70,20 @@ sure the colors (red, black, white) aligns.
 
 ## 
 
-connect to lidar:
-sudo dnsmasq -C /dev/null -kd -F 192.168.1.50,192.168.1.80,100h -i eth0 --bind-dynamic
+## Connect to lidar:
+ssh into the Jetson:
+```
+$ ssh nvidia@192.168.1.100
+```
+Once this is done run the following command on the Jetson:
+```
+$ sudo dnsmasq -C /dev/null -kd -F 192.168.1.50,192.168.1.80,100h -i eth0 --bind-dynamic
+```
 
-wait for about 30s, until dnsmasq-dhcp: DHPACK(eth0) 192.168.1.78 .... os1XXXXXXXXX appears
-ctrl+C to quit that process.Now you should be connected (try it by ping 192.168.1.78)
+Wait for about 30s, until dnsmasq-dhcp: DHPACK(eth0) 192.168.1.78 .... os1XXXXXXXXX appears.
+You can now quit this process by ctrl+C in that terminal. Now you should be connected (try it by ping 192.168.1.78)
 
-To run:
+## Run Smart program:
 ssh into Jetson in at least two terminals:
 ```
 $ ssh nvidia@192.168.1.100
@@ -89,6 +96,11 @@ In another Jetson terminal (ssh):
 ```
 $ roslaunch lidar_reader lidar_transform.launch
 ```
+Chose what program (Smart, Waypoint, Transect) you want to run, Smart is default (replace <program> with Smart, Waypoint or Transect):
+```
+$ rosparam set /nav_mode <program>
+```
+
 Open Rviz on the host computer (not ssh shell):
 ```
 $ rviz
