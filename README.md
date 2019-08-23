@@ -106,3 +106,5 @@ $ rosparam set /I/reset True
 $ rosparam set /motor_control/sim False
 $ rosparam set /I/reset False
 ```
+
+If /run is false the boat will hold the current position. As long as /I/rese is true the I-terms in the controller are set to 0 (as the controller is running, but no commands are published to the motors the I-terms will otherwise become very big). As long as /motor_control/sim is True no command is published to the motors. By setting this to False you start the program and the boat will start go to the point specified in Rviz. Once the boat is started the I parts of the controllers are activated again by setting /I/reset to False.
