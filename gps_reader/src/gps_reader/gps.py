@@ -6,6 +6,40 @@ from sensor_msgs.msg import NavSatFix
 from geometry_msgs.msg import TwistStamped
 from gps_reader.msg import GPS_data
 
+"""GPS redaer
+This module contains the implementation details for the GPS_node.py
+This is used with the nmea_navsat_driver package, which is a package that 
+reads nmea data and parses them into lat and lon. This module subscribes to
+the /fix publish by that nmea_navsat_driver. Note that we're not using /vel,
+since it is for some reason returning the wrong value.
+
+
+Attributes:
+    origLat (float): origin reference point latitude
+    origLon (float): origin reference point longitude
+    gps_message (GPS_data): custom defined gps_data message
+        see msg/GPS_data.msg
+    pub_gps (rospy.Publisher): for publishing GPS_data to the 
+        /GPS_coord topic. Remapped in one of the launch file
+    x_prev (float): previous converetd x, y coordinate, for use
+        in differentiating gps
+    y_prev (float): same as x_prev
+    t_prev (rospy.Time): previous time, for differentiating
+    angC_prev (float): previous angular velocity
+
+Example:
+    this node should be ran with the nmea driver. Don't forget to connect the 
+    GPS to the jetson!! If you encounter permission issue, run:
+
+        sudo chmod 666 /dev/serial/by-id/*
+
+    rosrun commands:
+        rosrun nmea_navsat_driver nmea_serial_driver _port:="/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller-if00-port0" _baud:=119200
+        rosrun gps_reader GPS_node.py
+    
+
+"""
+
 origLat = 0.0
 origLon = 0.0
 gps_message = GPS_data()
@@ -15,9 +49,14 @@ y_prev = 0.0
 t_prev = rospy.Time()
 angC_prev = 0.0
 
-'''Reads the position in latitude and longitude. Converts it to x,y.
-    Publishes custom message with positions: x,y,lon,lat and velocities: lin,ang'''
+
 def GPS_posCallb(msg):
+    '''Call back function on the /fix published by the nmea driver
+    Reads the position in latitude and longitude. Converts it to x,y.
+    Publishes custom message with positions: x,y,lon,lat and velocities: lin,ang
+    
+    Args: 
+        msg (NavSatFix) message published by the /fix'''
     global origLat, origLon, gps_message, pub_gps, x_vel, y_vel, ang_vel
 
     EARTH_RADIUS = 6371000
@@ -47,15 +86,21 @@ def GPS_posCallb(msg):
 
     pub_gps.publish(gps_message)
 
-'''Reads the linear and angular velocities'''
-
 def GPS_velCallb(msg):
+    '''Reads the linear and angular velocities. Not used.'''
     global x_vel, y_vel, ang_vel
     x_vel = msg.twist.linear.x
     y_vel = msg.twist.linear.y
     ang_vel = msg.twist.angular.z
 
 def angleDiff(angle):
+    '''Bound an angle between -pi and +pi in radians
+    
+    Args:
+        angle (float): angle to be bounded
+    Returns:
+        float: angle that is bounded
+    '''
     while angle > math.pi:
         angle = angle - 2 * math.pi
     while angle < -math.pi:
@@ -64,6 +109,21 @@ def angleDiff(angle):
     return angle
 
 def getVel(x,y,t):
+    ''' Differentiate position and angle postiion for velocity
+
+    Args:
+        x (float): current x position
+        y (float): current y position
+        t (rospy.Time): current time
+    
+    Returns:
+        x_vel (float): diferentiated x velocity
+        y_vel (float):diferentiated x velocity
+        ang_course (float): direction of travel 
+        angC_prev (float): angular velocity for the velocity vector
+
+    '''
+
     global x_prev, y_prev, t_prev, angC_prev
     timeDiff = (t-t_prev).to_sec()
     x_vel = (x - x_prev)/timeDiff

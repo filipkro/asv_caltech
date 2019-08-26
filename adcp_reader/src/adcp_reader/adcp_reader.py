@@ -7,6 +7,29 @@ from std_msgs.msg import Int64MultiArray
 import struct
 import datetime
 
+"""ADCP Reader
+
+This script includes implementation for the adcp_reader_node 
+for the adcp_reader packages. It starts by setting up serial
+connection to the serial to usb chip that connects to the 
+ADCP and then continuously query and publish to the /adcp/data
+topic. Since the ADCP ensemble (data packages in forms of bytestring) 
+are too long, we extract only the essential and save the rest 
+to a separate .bin file. 
+
+Example:
+    rosrun adcp_reader adcp_reader_node.py
+
+Attributes:
+    adcp_ser: the adcp serial port from pyserial
+    adcp_f: the file to write adcp ensemble data to. 
+    adcp_filename: name for the ensemble data file 
+    adcp_pub: ros publisher for pubslihing 'adcp/data'
+
+Todo:
+    * make adcp_f a rosparam that can be written to
+
+"""
 
 adcp_ser = None
 ANGLE_OFFSET = 45
@@ -16,8 +39,15 @@ adcp_pub = rospy.Publisher('adcp/data', Int64MultiArray, queue_size=10)
 
 def setup_adcp():
     '''Initialize adcp serial port, sending appropriate 
-    messages to configure it correctly'''
+    messages to configure it correctly
+    
+    Args:
+        None
+    Returns:
+        None'''
     global adcp_ser, adcp_f, adcp_filename
+
+    # serial to usb chip name for the adcp 
     adcp_port = '/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller_D-if00-port0'
     adcp_ser = serial.Serial(adcp_port, 115200, stopbits=serial.STOPBITS_ONE)
     adcp_ser.flush()
@@ -27,29 +57,43 @@ def setup_adcp():
     s = read_ADCP_response(verbose=True)
     print('Startup message: ', s)
 
+    # setting the coordinate transformation
+    # report readings in earth coorindate
     send_ADCP(b'EX11110')
     s = read_ADCP_response(verbose=True)
     time.sleep(0.1)
     print("Coordinate message: ", s)
 
+    # setting the adcp compass offset
     send_ADCP(b'EA+04500')
     s = read_ADCP_response(verbose=True)
     time.sleep(0.1)
     print("Angle offset message: ", s)
 
+    # log adcp data
     time_stamp = datetime.datetime.now().replace(microsecond=0).strftime('%y-%m-%d %H.%M.%S')
     adcp_filename = '/media/nvidia/37A33B8748E7DD2A/Data/ADCP' + time_stamp + ".bin"
     adcp_f = open(adcp_filename, 'wb')
 
 def send_ADCP(command):
-    '''send a command to adcp and return the response'''
+    '''send a command to adcp and return the response
+    
+    Args:
+        command (bytestring): command to send to adcp. See official adcp doc
+    Return:
+        bytestring: response from the adcp
+        (double check on this)'''
     global adcp_ser
     adcp_ser.write(command + b'\r\n')
     s = read_ADCP_response(verbose=True)
     return s
 
 def read_ADCP_response(verbose=False):
-    '''obstain a response from the adcp'''
+    '''obstain a response from the adcp
+    Args:
+        verbose (bool): optional argument to print all response
+    Returns:
+        bytestring: response from the adcp'''
     global adcp_ser
     response = b''
     cur_line = b''
@@ -66,11 +110,13 @@ def read_ADCP_response(verbose=False):
     return
 
 def stop_ping():
+    """ Send command to ADCP to stop sending data packages"""
     global adcp_ser
     print('Stopping Pings')
     adcp_ser.write(b'CSTOP\r\n') 
 
 def start_ping():
+    """ Send command to ADCP to start sending data packages"""
     global adcp_ser
     print("Requesting Pings")
     adcp_ser.write(b'CS\r\n')
@@ -81,7 +127,17 @@ def start_ping():
 #############################################
 
 def read_ensemble(verbose=False):
-    '''Read an ensemble of ADCP data. Then log it in a file'''
+    '''Parse the input data, check for checksum, if it is valid
+    extract the part that contains the ensemble. Write data 
+    to adcp_f
+    
+    Args:
+        verbose (bool): optional argument to whether to print out 
+            everything read
+    Returns:
+        all_data (byte_string): an ensemble of data from the adcp
+        '''
+
     global adcp_ser, adcp_f, adcp_pub
     header = adcp_ser.read(2)
     if header != b'\x7f\x7f':
@@ -110,25 +166,29 @@ def read_ensemble(verbose=False):
     all_data = b'\x7f\x7f' + num_bytes + data + checksum
     adcp_f.write(all_data)
 
-    # current_state = [self.state_est.x, self.state_est.y, self.state_est.theta, self.state_est.roll, self.state_est.pitch, self.state_est.v_course, self.state_est.ang_course]
-    # current_state_str = "$STATE," + ",".join(map(str,current_state)) + "###"
-    
-    # Data Logging
-    # if self.log_data  == True:
-    #     self.all_data_f.write(current_state_str.encode())
-    #     self.all_data_f.write("$ADCP,".encode() + all_data + b'###')
-
     return all_data
 
 def s16(value):
+    '''Change unsigned int to signed int
+
+    Args:
+        value (uint): any unsigned int
+    Returns:
+        (int): signed int'''
     return -(value & 0x8000) | (value & 0x7fff)
-    '''
-Input:
-    Ensemble: byte str ings of ensemble data
-Output:
-    Array of values from the ADCP package
-'''
+
 def extract_data(all_data):
+    '''Read an ensemble of ADCP data. 
+    Publish with the adcp_pub on topic /adcp/pub
+    
+    Args:
+        all_data (bytestring): an bytestring that contains an ensemble
+        (one package) of adcp data
+    Return: 
+        float list: essential adcp measurements
+           [heading, roll, pitch, transducer_depth, bt_ranges, bt_velocities, 
+           surface_vel]
+           bt_ranges, bt_velocities, surface vel is floats long'''
     num_types = all_data[5]
     
     # OFFSETS
@@ -241,6 +301,13 @@ def extract_data(all_data):
     return essential
 
 def angleDiff(angle):
+    '''Bound an angle between -pi and +pi in radians
+    
+    Args:
+        angle (float): angle to be bounded
+    Returns:
+        float: angle that is bounded
+    '''
     while angle > math.pi:
         angle = angle - 2 * math.pi
     while angle < -math.pi:
@@ -249,6 +316,13 @@ def angleDiff(angle):
     return angle
 
 def angleDiff_deg(angle):
+    '''Bound an angle between -pi and +pi in degrees
+    
+    Args:
+        angle (float): angle to be bounded
+    Returns:
+        float: angle that is bounded in degrees
+    '''
     while angle > 180:
         angle = angle - 2 * 180
     while angle < -180:
@@ -258,13 +332,13 @@ def angleDiff_deg(angle):
 
 # make this the main()
 def main():
-    '''extract adcp data when it is sending back ensembles'''
+    '''Setup serial port, start ping and then continously read and extract data 
+    from the adcp'''
 
+    # setup adcp, start ping and init node
     setup_adcp()
     start_ping()
     rospy.init_node('adcp_reader')
-    #rate = rospy.Rate(10) # not sure if we need this for now
-    #rate.sleep() # put this in the loop
 
     while not rospy.is_shutdown():
         ensemble = read_ensemble(verbose=False) # read an ensemble of data 

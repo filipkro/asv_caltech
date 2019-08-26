@@ -5,6 +5,11 @@ from sensor_msgs.msg import LaserScan
 from lidar_reader.msg import lidar_data
 import math.pi as pi
 
+'''Lidar
+This module is unused in the current code. But please add lidar related script to here
+if lidar data were to be polished
+'''
+
 pub_lidar = rospy.Publisher('/laserSimp', GPS_data, queue_size=1)
 lidar_msg = lidar_data()
 

@@ -2,12 +2,15 @@
     <!-- Default to the smart controller that use lidar information
     Sensors used in this test: IMU, ADCP, GPS
     Packages ran: Motor control, Master Controller, LIDAR Reader -->
+
+    
     <!-- Remapping -->
     <remap from="imu" to="sensors/imu"/>
     <remap from="fix" to="GPS/fix"/>
     <remap from="vel" to="GPS/vel"/>
     <remap from="GPS_coord" to="GPS/xy_coord"/>
 
+    <!-- Load the parameters stored in field_test_parm file -->
     <rosparam file="$(find asv_controller)/src/field_test_param.yaml" command="load"/>
 
     <!-- Master Controller -->
