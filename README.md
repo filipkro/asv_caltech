@@ -100,7 +100,7 @@ Chose what program (Smart, Waypoint, Transect) you want to run, Smart is default
 ```
 $ rosparam set /nav_mode <program>
 ```
-If the Smart program is chosen the mode (Upstream, Transect) needs to be specified. If no mode is chosen the program will imediately go to the Home/Finished state. Replace <mode> with Upstream or Transect:
+If the Smart program is chosen the mode (Upstream, Transect) needs to be specified. If no mode is chosen the program will imediately go to the Home/Finished state. Replace \<mode\> with Upstream or Transect:
 ```
 $ rosparam set /smart/mode <mode>
 ```
