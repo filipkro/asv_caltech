@@ -3,6 +3,7 @@ import rospy
 import math
 import numpy as np
 from Generic_Controller import Generic_Controller
+from asv_controller.msg import Transect_states
 
 # inherited from the Generic Controller class
 # members:
@@ -38,6 +39,9 @@ class Transect_controller(Generic_Controller):
         self.DIST_THRESHOLD = rospy.get_param('/transect/dist_thres', 1.0) #unused
         self.ang_update_rate = rospy.get_param('/transect/ang_update_rate', 1)
         self.v_update_rate = rospy.get_param('/transect/v_update_rate', 1)
+
+        self.debug_message = Transect_states()
+        self.debug_pub = rospy.Publisher('transect_controller/states', Transect_states, queue_size=10)
 
     def calc_control(self):
         self.v_x_des = rospy.get_param('/transect/speed_ref', 0.5)
@@ -82,6 +86,12 @@ class Transect_controller(Generic_Controller):
         else:
             self.ang_update_count += 1
             ang_des = self.last_ang_des
+
+        self.debug_message.state_asv = self.state_asv
+        self.debug_message.target_point = self.state_ref
+        self.debug_message.prev_point = self.last_point
+
+        self.debug_pub.publish(self.debug_message)
 
         u_rudder = self.heading_control(ang_des)
         u_nom = -np.clip(u_nom, -1000.0, 1000.0)
@@ -131,6 +141,11 @@ class Transect_controller(Generic_Controller):
         rospy.logdebug("u_nom " + str(u_nom))
         rospy.logdebug("thrust_dir " + str(thrust_dir))
 
+        self.debug_message.drift_distance = drift_distance
+        self.debug_message.drift_v = drift_v 
+        self.debug_message.v_correct = v_correct
+        self.debug_message.u_nom = u_nom
+
 
         return v_correct, u_nom
 
@@ -168,6 +183,10 @@ class Transect_controller(Generic_Controller):
         rospy.logdebug('heading from lne ' + str(heading_from_line))
         rospy.logdebug('des heading from line ' + str(des_line_heading))
         rospy.logdebug("Ang des " + str(new_ang))
+
+        self.debug_message.v_x = v_x
+        self.debug_message.v_x_des = self.v_x_des
+        self.debug_message.v_x_error = v_x - self.v_x_des 
         # print("V_x Difference ", v_x - v_x_des)
         # print("Desired Angle ", new_ang)
         # print("Current Angle ", self.state_est.theta)

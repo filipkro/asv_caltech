@@ -5,6 +5,7 @@ import math
 import numpy as np
 import time
 from Generic_Controller import Generic_Controller
+from asv_controller.msg import PI_states
 
 # inherited from the Generic Controller class
 # members:
@@ -32,6 +33,10 @@ class PI_controller(Generic_Controller):
         self.Ti_r = rospy.get_param('rudder/Ti', 10.0)
         self.v_robotX = 0.0
         self.downstream = False
+
+        self.debug_messages = PI_states()
+        self.debug_pub = rospy.Publisher('pi_controller/states', PI_states, queue_size=10)
+
 
 
     def d2t(self):
@@ -61,8 +66,8 @@ class PI_controller(Generic_Controller):
             self.I_rudder = 0.0
             self.I_thrust = 0.0
 
-        print('state ref', self.state_ref)
-        print('state asv', self.state_asv)
+#        print('state ref', self.state_ref)
+#        print('state asv', self.state_asv)
         # print('current angle', self.current[1])
         # print('heading angle', self.state_asv[2])
         # print('current vel', self.current[0])
@@ -95,10 +100,11 @@ class PI_controller(Generic_Controller):
             # v_ref = vel_robot[0,0] + 0.5
             '''turn robot back towards current if it points to much downward'''
             e_ang = e_heading
-
+            self.debug_messages.action = "aligning to current"
         elif self.d2t() < 0.3:
             e_ang = e_heading
             v_ref = 0.0
+            self.debug_messages.action = 'holding'
 
         else:
 
@@ -113,6 +119,7 @@ class PI_controller(Generic_Controller):
         #     v_ref = 0.0
         #else:
             rospy.logdebug('TREDJE')
+            self.debug_messages.action = "going upstream"
             '''desired angle and velocity of robot'''
             des_angle = math.atan2(self.state_ref[1] - self.state_asv[1], \
                             self.state_ref[0] - self.state_asv[0])
@@ -130,10 +137,7 @@ class PI_controller(Generic_Controller):
                 lin_factor = (self.d2t() - self.dist_threshold)/rospy.get_param('/d2t', 1.5)
                 v_ref = lin_factor * v_ref
                 lin_v = True
-                print('in lin', lin_factor)
-                print('wtf')
-                print('')
-                print('WTF')
+#                print('in lin', lin_factor)
 
             # if self.transect and v > self.VEL_THRESHOLD:
             #     # rot = np.array([[np.cos(self.theta_p), np.sin(self.theta_p)],
@@ -153,7 +157,7 @@ class PI_controller(Generic_Controller):
             #     rospy.set_param('thrust/K', 100.0)
             #     rospy.set_param('/rudder/K', 50.0)
 
-
+            
             if abs(self.angleDiff(des_angle - self.current[1])) > math.pi/2 \
                                 and self.current[0] > 0.2:
                 '''if goal point is downstream go towards it by floating with current'''
@@ -165,7 +169,8 @@ class PI_controller(Generic_Controller):
                 # e_ang = self.angleDiff(math.pi - des_angle + ang_dir)
                 # v_ref = -v_ref/2
                 v_ref = -abs(0.5 * v_ref * math.cos(self.current[1] - des_angle_downstream))
-                print('v_ref', v_ref)
+#                print('v_ref', v_ref)
+                self.debug_messages.action = 'going downstream'
                 # rospy.logdebug("angle error " + str(e_ang))
                 # self.downstream = True
                 '''transform velocities to error coordinate frame'''
@@ -177,6 +182,8 @@ class PI_controller(Generic_Controller):
 
 
             e_ang = self.angleDiff(des_angle - ang_dir)
+            self.debug_messages.des_ang = des_angle
+
 
 
                 #
@@ -217,6 +224,18 @@ class PI_controller(Generic_Controller):
         rospy.logdebug('e_ang (in PI): ' + str(e_ang))
         u_rudder = self.rudder_control(e_ang)
         u_thrust = self.thrust_control(e_v)
+
+        self.debug_messages.state_ref = self.state_ref
+        self.debug_messages.state_asv = self.state_asv
+        self.debug_messages.e_ang = e_ang
+        self.debug_messages.e_v = e_v
+        self.debug_messages.u_rudder = u_rudder
+        self.debug_messages.u_thrust = u_thrust
+        self.debug_messages.I_thrust = self.I_thrust
+        self.debug_messages.I_rudder = self.I_rudder
+        self.debug_messages.v_ref = v_ref
+        self.debug_pub.publish(self.debug_messages)
+
         # if self.transect and v > self.VEL_THRESHOLD:
         #     rospy.set_param('thrust/K', self.prev_Kt)
         #     rospy.set_param('/rudder/K', self.prev_Kr)
