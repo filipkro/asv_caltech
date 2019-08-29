@@ -90,6 +90,7 @@ class Start(State):
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
 
         if dist < DIST_THRESHOLD:
+            '''a rosparam could be used here instead of commenting in code..'''
             # return Explore(self.ranges)
             return Hold(self.controller.state_asv)
         else:
@@ -125,7 +126,6 @@ class Hold(State):
     def calc_control(self):
         '''remember to update the controller before calling this'''
         self.controller.destinationReached(True)
-        # self.controller.state_ref = self.controller.state_asv
         return self.controller.calc_control()
 
 class Idle(State):
@@ -256,12 +256,14 @@ class Transect(State):
         '''calculates the reference points if PI controller is used for transects.
             projects boats position onto transect line. ref point is point delta m
             ahead of this point on the line.'''
+
+            '''this code does not work at the moment, for some reason the direction
+                is not changed in reality. But works in simulation...'''
+
         # pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
         # line = np.array([math.cos(self.transect_angle), math.sin(self.transect_angle)])
         # proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
         # delta = proj - pos
-        # print('delta', delta)
-        # # print('proj', proj)
         # if self.direction:
         #     line = np.array([math.cos(self.transect_angle + math.pi), math.sin(self.transect_angle + math.pi)])
         #     pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
@@ -272,13 +274,9 @@ class Transect(State):
         #     pos = np.array([self.controller.state_asv[0], self.controller.state_asv[1]])
         #     proj = np.dot(pos, line) * line #/ np.dot(line, line) * line if line is not normalized, use this if line is not [cos(),sin()]
         #     ref = proj + self.transect_center = rospy.get_param('/transect/delta_ref', 2.5) * line #make sure line is normalized
+        # return ref
 
-        # print('IN CALC REF POINT')
-        # print('line', line)
-        # print('pos', pos)
-        # print('proj', proj)
-        # print('ref', ref)
-
+        '''This is reference when transect controller is used'''
         if self.direction:
             ref = [self.p1.x, self.p1.y]
         else:
@@ -348,15 +346,6 @@ class Transect(State):
             dists2 = ranges[np.arange(0, int((end_ang + math.pi)/inc))]
             dists = np.concatenate((dists1, dists2))
         close = np.nonzero(dists < dist_th)
-        if len(close[0]) > 10:
-            print('IN TO CLOSE')
-            print('dir', dir)
-            # print('start_ang', start_ang)
-            # print('end ang', end_ang)
-            # print('theta_p', theta_p)
-            # print('theta', state_asv[2])
-            print('real theta_p', self.transect_angle)
-            print('waypoints', wayPoints)
 
         if (rospy.get_rostime() - self.last_turn).to_sec() < 2.0:
             return False
@@ -541,11 +530,6 @@ class Explore(State):
         self.xref = self.controller.state_asv[0] + dist * math.cos(theta_dest)
         self.yref = self.controller.state_asv[1] + dist * math.sin(theta_dest)
 
-        # self.filter_ref([xref, yref])
-        #
-        # self.xref = self.prev_point[0]
-        # self.yref = self.prev_point[1]
-
         cals_msg.data = [d_left, d_right, dist_mid, theta_p, theta_dest, self.xref, self.yref]
         self.calc_pub.publish(cals_msg)
 
@@ -555,25 +539,6 @@ class Explore(State):
 
     def get_dist(self, p1, p2):
         return math.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
-
-    def filter_ref(self, new_point):
-        if self.prev_point == 0:
-            self.prev_point = new_point
-        elif self.get_dist(self.prev_point, new_point) <= rospy.get_param('explore/filter', 1.0):
-            self.prev_point = new_point
-            print('FORSTA')
-        # elif self.disc_point == 0:
-        #     self.disc_point = new_point
-        # elif self.get_dist(self.disc_point, new_point) <= 1.0:
-        # else:
-        #     prev_disc = self.disc_point
-        #     self.disc_point = new_point
-        #     if self.get_dist(new_point, prev_disc) <= 1.0:
-        #         self.disc_point = self.prev_point
-        #         self.prev_point = new_point
-        #
-        #     print('SISTA')
-
 
 
     def calc_control(self):

@@ -21,6 +21,8 @@ ranges = [0]
 lidar_inc = 1000
 ADCP_mean = [0.0, 0.0, 0.0] # [sum of average, num_samples, mean]
 
+last_point
+
 
 def angleDiff(angle):
     while angle > math.pi:
@@ -121,6 +123,53 @@ def calc_errors():
     e_v_alt = v_ref - vel_robot[0,0]
 
     return e_v, e_ang, e_v_alt, ang_ref, e_heading
+
+def error_transect():
+    '''calculate current velocity toward the waypoint, increase or decrease u_nom'''
+    global K_v, last_point, v_asv, state_asv
+    # self.K_v = rospy.get_param('/transect/K_v', 50.0)
+    # self.K_t = rospy.get_param('/transect_thrust/K', 10.0)
+
+    # Calculate drift away from the line
+    cur_point = last_point
+    next_point = self.state_ref
+
+    line_angle = math.atan2((self.state_ref[1] - self.last_point[1]), \
+                        (self.state_ref[0] - self.last_point[0]))
+    position_angle = math.atan2((self.state_asv[1] - self.last_point[1]), \
+                         (self.state_asv[0] - self.last_point[0]))
+
+    # calculate position from the line
+    pos_ang_from_line = self.angleDiff(position_angle - line_angle) # position vector from line
+    dist = math.sqrt((self.state_asv[1] - self.last_point[1])**2 + \
+                              (self.state_asv[0] - self.last_point[0])**2 )
+    drift_distance = dist * math.sin(pos_ang_from_line)
+
+    # calculate velocity away from the line
+    v_ang_from_line = self.angleDiff(self.v_asv[2] - line_angle) # v_asv[2]?????????!!!!!!
+    v_course = math.sqrt(self.v_asv[0]**2 + self.v_asv[1]**2)
+    drift_v = v_course * math.sin(v_ang_from_line)    # remove negative sign>|?????!
+
+    # heading vector from line
+    heading_from_line = self.angleDiff(self.state_asv[2] - line_angle)
+
+    # thrust direction
+    thrust_dir = heading_from_line/abs(heading_from_line)
+
+    # adding an integral term to remove error (ignore for now)
+    # drift_error_integral = self.drift_error_integral + drift_distance * self.dt
+    v_correct = -drift_distance * self.K_v #- self.drift_error_integral * self.K_vi
+    nominal_u = rospy.get_param('/transect/u_nominal', 100)
+    u_nom = (v_correct - drift_v) * thrust_dir * self.K_t #+ nominal_u # or 10
+
+    rospy.logdebug("Drift dist " + str(drift_distance))
+    rospy.logdebug("Drift v " + str(drift_v))
+    rospy.logdebug("V correct " + str(v_correct))
+    rospy.logdebug("u_nom " + str(u_nom))
+    rospy.logdebug("thrust_dir " + str(thrust_dir))
+
+
+    return v_correct, u_nom
 
 
 def GPS_callb(msg):
