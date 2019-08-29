@@ -96,7 +96,7 @@ In another Jetson terminal (ssh):
 ```
 $ roslaunch lidar_reader lidar_transform.launch
 ```
-Chose what program (Smart, Waypoint, Transect) you want to run, Smart is default. Replace <program> with Smart, Waypoint or Transect:
+Chose what program (Smart, Waypoint, Transect) you want to run, Smart is default. Replace \<program\> with Smart, Waypoint or Transect:
 ```
 $ rosparam set /nav_mode <program>
 ```
