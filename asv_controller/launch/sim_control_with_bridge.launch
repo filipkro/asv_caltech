@@ -25,6 +25,7 @@
         /transect/K_latAng: 0.5
         /transect/Kp_turn: 200
         /transect/speed_ref: 0.5
+        /motor_control/sim: true
       </rosparam>
     </node>
 

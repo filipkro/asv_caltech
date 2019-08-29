@@ -129,7 +129,7 @@ def updateTarget():
 
     DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
     control_mode = rospy.get_param('/nav_mode', 'Waypoint')
-    print("distance to target", dist_2_target)
+#    print("distance to target", dist_2_target)
     # if we're close to our target then do different things depends on which
     # controller we're running
     if (dist_2_target <= DIST_THRESHOLD and control_mode != 'Smart'):
@@ -144,7 +144,7 @@ def updateTarget():
                 rospy.loginfo('Destination reached')
                 return False
         elif control_mode == 'Transect':
-            print('in transect reached')
+#            print('in transect reached')
             if (len(wayPoints) <= 1):
                 rospy.loginfo('Not enough points for transect')
                 rospy.set_param('/nav_mode', 'Waypoint')
@@ -273,9 +273,9 @@ def main():
         controller = switchControl()
         rospy.logdebug('Target Index '+ str(target_index))
         trgt_updated = updateTarget()
-        print(rospy.get_param('/nav_mode'))
-        print('current angle', current[1])
-        print('heading', state_asv[2])
+#        print(rospy.get_param('/nav_mode'))
+#        print('current angle', current[1])
+#        print('heading', state_asv[2])
         if run and trgt_updated:
             controller.destinationReached(not trgt_updated)
             controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)#, ADCP_mean)
@@ -341,7 +341,7 @@ def main():
             motor_cmd.servo = u_rudder
 
         rospy.logdebug('MotorCmd ' + str(motor_cmd))
-        print('motorcmnd (in master):', motor_cmd)
+#        print('motorcmnd (in master):', motor_cmd)
         ctrl_pub.publish(motor_cmd)
 
         rate.sleep()

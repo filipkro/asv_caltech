@@ -149,7 +149,7 @@ def update_cmd(port, starboard, servo):
 
     # For simulation, publish to gazebo stuff (not done yet)
     if rospy.get_param('/motor_control/sim', False):
-        print('Port, Starboard, Servo', port, starboard, servo)
+        rospy.logdebug('Port, Starboard, Servo' + str(port) + str(starboard) + str(servo))
     else:
         servo_command = servo
         # convert from rpm to rad/s
@@ -192,7 +192,7 @@ def imu_lidar_callback(msg):
     roll = euler[0]
     pitch = euler[1]
     yaw = euler[2]
-    print(roll, pitch , yaw)
+    rospy.logdebug("os1 imu" + str(roll) + str(pitch) + str(yaw))
     
 
 def test_callback(msg):

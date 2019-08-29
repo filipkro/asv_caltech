@@ -61,8 +61,8 @@ class PI_controller(Generic_Controller):
             self.I_rudder = 0.0
             self.I_thrust = 0.0
 
-        print('state ref', self.state_ref)
-        print('state asv', self.state_asv)
+#        print('state ref', self.state_ref)
+#        print('state asv', self.state_asv)
         # print('current angle', self.current[1])
         # print('heading angle', self.state_asv[2])
         # print('current vel', self.current[0])
@@ -130,10 +130,7 @@ class PI_controller(Generic_Controller):
                 lin_factor = (self.d2t() - self.dist_threshold)/rospy.get_param('/d2t', 1.5)
                 v_ref = lin_factor * v_ref
                 lin_v = True
-                print('in lin', lin_factor)
-                print('wtf')
-                print('')
-                print('WTF')
+#                print('in lin', lin_factor)
 
             # if self.transect and v > self.VEL_THRESHOLD:
             #     # rot = np.array([[np.cos(self.theta_p), np.sin(self.theta_p)],
@@ -165,7 +162,7 @@ class PI_controller(Generic_Controller):
                 # e_ang = self.angleDiff(math.pi - des_angle + ang_dir)
                 # v_ref = -v_ref/2
                 v_ref = -abs(0.5 * v_ref * math.cos(self.current[1] - des_angle_downstream))
-                print('v_ref', v_ref)
+#                print('v_ref', v_ref)
                 # rospy.logdebug("angle error " + str(e_ang))
                 # self.downstream = True
                 '''transform velocities to error coordinate frame'''
