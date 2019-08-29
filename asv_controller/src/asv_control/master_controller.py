@@ -31,6 +31,10 @@ smart_controller = Smart_LiDAR_Controller()
 transect_contr = transect_controller.Transect_controller()
 PI_contr = PI_controller.PI_controller()
 
+# publisher back to the gui of the processed adcp data
+adcp_pub = rospy.Publisher('master_controller/adcp_data', Float32MultiArray, queue_size=1)
+
+
 ########################
 ## Callback funcitons ##
 ########################
@@ -69,8 +73,10 @@ def IMU_callb(msg):
     state_asv[2] = msg.data
 
 def ADCP_callb(msg): # simulation, not accurate
-    global current, ADCP_mean
+    global current, ADCP_mean, adcp_pub
+    adcp_msg = Float32MultiArray()
     current = msg.data
+
     calc_mean = rospy.get_param('ADCP/mean', False)
     if calc_mean:
         if rospy.get_param('/ADCP/reset', False):
@@ -82,8 +88,15 @@ def ADCP_callb(msg): # simulation, not accurate
         ADCP_mean[2] = ADCP_mean[0]/ADCP_mean[1]
         current[1] = ADCP_mean[2]
 
+    # publish adcp data back to gui
+    adcp_msg.data.append(current[0])
+    adcp_msg.data.append(current[1])
+    adcp_msg.data.append(6.9) # fake depth
+    adcp_pub.publish(adcp_msg)
+
+
 def ADCP_callb2(msg):
-    global current, ADCP_mean, state_asv
+    global current, ADCP_mean, state_asv, adcp_pub
     data = msg.data
     calc_mean = rospy.get_param('ADCP/mean', False)
 
@@ -96,6 +109,10 @@ def ADCP_callb2(msg):
     v_angle = angleDiff(v_angle+adcp_offset)
     current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2) / 1000.0
     current[1] = v_angle
+
+    depths_list = data[4:7]
+    cur_depth = -np.mean(depths_list) / 100.0 + TRANSDUCER_OFFSET # (original unit in cm)
+
     if calc_mean:
         if rospy.get_param('/ADCP/reset', False):
             ADCP_mean = [0.0, 0.0, 0.0] # [sum of average, num_samples, mean]
@@ -107,6 +124,12 @@ def ADCP_callb2(msg):
 
         current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2)
         current[1] = ADCP_mean[2]
+    
+    # publish adcp data back to gui
+    adcp_msg.data.append(current[0])
+    adcp_msg.data.append(current[1])
+    adcp_msg.data.append(cur_depth) # to be added
+    adcp_pub.publish(adcp_msg)
 
 
 def s16(value):

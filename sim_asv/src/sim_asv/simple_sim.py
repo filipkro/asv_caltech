@@ -136,6 +136,15 @@ def angleDiff(angle):
 
     return angle
 
+def XYtoGPS( origLat, origLng, x, y):
+    '''Convert xy to gps for simulation'''
+    EARTH_RADIUS = 6371000.0
+
+    lat = y / EARTH_RADIUS * 180.0 /math.pi + origLat 
+    lng = x / math.pi * 180 / math.cos((lat + origLat)/2*math.pi/180.0) / EARTH_RADIUS + origLng
+
+    return [lat, lng]
+    
 
 #def update_state(self, state, uR, uL, rudder):
 def update_state(msg):
@@ -202,6 +211,12 @@ def update_state(msg):
     gps_message.x_vel = robot_vx
     gps_message.y_vel = robot_vy
     gps_message.ang_course = ang_course
+
+    orig_lat = rospy.get_param('originLat', 0.0)
+    orig_lng = rospy.get_param('originLon', 0.0)
+    latlng = XYtoGPS(orig_lat, orig_lng, x, y)
+    gps_message.latitude = latlng[0]
+    gps_message.longitude = latlng[1]
 
     # quat = qfe(0,0,theta)
     # pose.pose.position.x = x
