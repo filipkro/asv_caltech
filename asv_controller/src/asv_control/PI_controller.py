@@ -82,6 +82,7 @@ class PI_controller(Generic_Controller):
 
         #fix so I parts are reset when /motor/sim is changed to False
         if rospy.get_param('/I/reset', False):
+            rospy.set_param('/I/reset', False) # change it back to true (stop resetting)
             self.I_rudder = 0.0
             self.I_thrust = 0.0
 
