@@ -268,7 +268,7 @@ def angleDiff(angle):
 
 def main():
     global samp_time, wayPoints, h, vref, current, state_ref, state_asv
-    rospy.init_node('master_controller')
+    rospy.init_node('master_controller', disable_signals=True)
 
     # information update subscriber
     rospy.Subscriber('GPS/xy_coord', GPS_data, GPS_callb)
@@ -366,5 +366,8 @@ def main():
         rospy.logdebug('MotorCmd ' + str(motor_cmd))
 #        print('motorcmnd (in master):', motor_cmd)
         ctrl_pub.publish(motor_cmd)
+
+        if rospy.get_param('/emergency_shutdown', False):
+            rospy.signal_shutdown('emergency')
 
         rate.sleep()

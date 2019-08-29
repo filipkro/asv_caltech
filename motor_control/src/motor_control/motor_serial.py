@@ -244,6 +244,8 @@ def main():
         # publish motor
         # port_pub.publish(port_command)
         # star_pub.publish(star_command)
+        if rospy.get_param('/emergency_shutdown', False):
+            rospy.signal_shutdown('emergency')
 
         rate.sleep()
     
