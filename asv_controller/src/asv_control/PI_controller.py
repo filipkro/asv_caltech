@@ -36,11 +36,8 @@ class PI_controller(Generic_Controller):
         self.K_r = rospy.get_param('rudder/K', 150.0)
         self.Ti_r = rospy.get_param('rudder/Ti', 10.0)
         self.v_robotX = 0.0                         #For integration to get distance upstream, maybe better to use GPS instead
-
         self.debug_messages = PI_states()
         self.debug_pub = rospy.Publisher('pi_controller/states', PI_states, queue_size=10)
-
-
 
     def d2t(self):
         """
@@ -80,11 +77,14 @@ class PI_controller(Generic_Controller):
         vel_robot = np.matmul(rot, vel_unrot)                                   #velocity in local frame
         self.vel_robotX = vel_robot[0]
 
+
         #fix so I parts are reset when /motor/sim is changed to False
-        if rospy.get_param('/I/reset', False):
+        if rospy.get_param('/I/reset', False) or rospy.get_param('/motor/sim', False):
             rospy.set_param('/I/reset', False) # change it back to true (stop resetting)
             self.I_rudder = 0.0
             self.I_thrust = 0.0
+
+        print('I-parts', self.I_rudder, self.I_thrust)
 
         '''evaluate rotation of robot compared to current'''
         e_heading = self.angleDiff(self.current[1] - self.state_asv[2])     #difference between current and heading of the boat
