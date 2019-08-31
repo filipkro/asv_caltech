@@ -4,6 +4,7 @@ import time
 import rospy
 import math
 from std_msgs.msg import Int64MultiArray
+from std_msgs.msg import String
 import struct
 import datetime
 
@@ -36,6 +37,7 @@ ANGLE_OFFSET = 45
 adcp_f = None
 adcp_filename = ''
 adcp_pub = rospy.Publisher('adcp/data', Int64MultiArray, queue_size=10)
+adcp_raw_pub = rospy.Publisher('adcp/raw', String, queue_size=10)
 
 def setup_adcp():
     '''Initialize adcp serial port, sending appropriate 
@@ -72,8 +74,8 @@ def setup_adcp():
 
     # log adcp data
     time_stamp = datetime.datetime.now().replace(microsecond=0).strftime('%y-%m-%d %H.%M.%S')
-    adcp_filename = '/media/nvidia/37A33B8748E7DD2A/Data/ADCP' + time_stamp + ".bin"
-    adcp_f = open(adcp_filename, 'wb')
+    # adcp_filename = '/media/nvidia/37A33B8748E7DD2A/Data/ADCP' + time_stamp + ".bin"
+    # adcp_f = open(adcp_filename, 'wb')
 
 def send_ADCP(command):
     '''send a command to adcp and return the response
@@ -164,7 +166,10 @@ def read_ensemble(verbose=False):
 
     #read data to file
     all_data = b'\x7f\x7f' + num_bytes + data + checksum
-    adcp_f.write(all_data)
+
+    adcp_raw_msg = String()
+    adcp_raw_msg.data = all_data
+    adcp_raw_pub.publish(adcp_raw_msg)
 
     return all_data
 
@@ -353,7 +358,7 @@ def main():
 
     stop_ping()
     adcp_ser.close()
-    adcp_f.close()
+    # adcp_f.close()
         # self.adcp_f.close()
         # if self.log_data == True:
         #     self.all_data_f.close()
