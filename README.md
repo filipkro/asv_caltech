@@ -96,9 +96,13 @@ In another Jetson terminal (ssh):
 ```
 $ roslaunch lidar_reader lidar_transform.launch
 ```
-Chose what program (Smart, Waypoint, Transect) you want to run, Smart is default (replace <program> with Smart, Waypoint or Transect):
+Chose what program (Smart, Waypoint, Transect) you want to run, Smart is default. Replace \<program\> with Smart, Waypoint or Transect:
 ```
 $ rosparam set /nav_mode <program>
+```
+If the Smart program is chosen the mode (Upstream, Transect) needs to be specified. If no mode is chosen the program will imediately go to the Home/Finished state. Replace \<mode\> with Upstream or Transect:
+```
+$ rosparam set /smart/mode <mode>
 ```
 
 Open Rviz on the host computer (not ssh shell):
@@ -113,12 +117,9 @@ Save the changes, ctrl+C, to keep the vizualised topics until next time. If 'Sma
 In another terminal prompt:
 ```
 $ rosparam set /run True
-$ rosparam set /I/reset True
 ```
   (the next command will start the vehicle)
 ```
 $ rosparam set /motor_control/sim False
-$ rosparam set /I/reset False
 ```
-
-If /run is false the boat will hold the current position. As long as /I/rese is true the I-terms in the controller are set to 0 (as the controller is running, but no commands are published to the motors the I-terms will otherwise become very big). As long as /motor_control/sim is True no command is published to the motors. By setting this to False you start the program and the boat will start go to the point specified in Rviz. Once the boat is started the I parts of the controllers are activated again by setting /I/reset to False.
+As long as /motor_control/sim is True no command is published to the motors. The I-parts in the controllers are set to zero as long as /motor_control/sim is True. By setting this to False you start the program and the boat will start go to the point specified in Rviz. Once the boat is started the I parts of the controllers are activated again by setting /I/reset to False.
