@@ -111,20 +111,19 @@ class Start(State):
         self.yref = rospy.get_param('/start/y', 0.0)
 
     def on_event(self, event):
-        '''
+        """
         Determins the next state in the control program.
 
         Args:
             String: a string that describes an event happend in the asv
         Returns:
             State: the next state
-        '''
+        """
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
         dist = math.sqrt((self.controller.state_ref[0] - self.controller.state_asv[0])**2 \
                     + (self.controller.state_ref[1] - self.controller.state_asv[1])**2)
 
         if dist < DIST_THRESHOLD:
-            '''a rosparam could be used here instead of commenting in code..'''
             mode = rospy.get_param('/smart/mode', "default")
             if mode == "Upstream":
                 return Explore(self.ranges)
@@ -178,17 +177,17 @@ class Hold(State):
         # set average and reset (?) param true
 
     def on_event(self, event):
-        '''
+        """
         Determins the next state in the control program.
 
         Args:
             String: a string that describes an event happend in the asv
         Returns:
             State: the next state
-        '''
+        """
         self.waitTime = rospy.get_param('/hold/wait_time', 5.0)
         if (rospy.get_rostime() - self.start_time).to_sec() > self.waitTime:
-            ''' The boat has held position for the specified time '''
+            #  The boat has held position for the specified time
             # for averaging:
             # set average param false (?)
             return Transect(last_controller=self.controller, ranges=self.ranges,
@@ -221,14 +220,14 @@ class Idle(State):
         self.controller.state_ref = self.controller.state_asv
 
     def on_event(self, event):
-        '''
+        """
         Determins the next state in the control program.
 
         Args:
             String: a string that describes an event happend in the asv
         Returns:
             State: the next state
-        '''
+        """
         return self
 
     def calc_control(self):
@@ -256,12 +255,12 @@ class Transect(State):
         self.controller = transect_controller.Transect_controller(controller=last_controller)
         # self.controller = PI_controller.PI_controller(controller=last_controller)
         if trans_cnt == None:
-            ''' If this is the first transect'''
+             # If this is the first transect
             self.transect_cnt = 0                   # keep track of nbr of transects made
             self.start_time = rospy.get_rostime()   # keep track of time during which transects has been made
         else:
-            ''' If transects has been performed before,
-            i.e if the boat has been going upstream between transects'''
+            # If transects has been performed before,
+            # i.e if the boat has been going upstream between transects
             self.transect_cnt = trans_cnt[0]        # keep track of nbr of transects made
             self.start_time = trans_cnt[1]          # keep track of time during which transects has been made
 
@@ -277,7 +276,6 @@ class Transect(State):
         self.last_turn = rospy.get_rostime()        # wait for short while after turning before looking at lidar
         self.ranges = ranges
         self.lidar_inc = lidar_inc
-
 
         current = self.controller.current # fix the averaging
         current_angle = current[1]
@@ -297,14 +295,14 @@ class Transect(State):
             self.wayPoints = [self.p1, self.p2]
 
     def on_event(self, event):
-        '''
+        """
         Determins the next state in the control program.
 
         Args:
             String: a string that describes an event happend in the asv
         Returns:
             State: the next state
-        '''
+        """
         if self.direction:
             ''' to determine what angle for the lidar measurements'''
             angle = self.transect_angle
@@ -314,22 +312,22 @@ class Transect(State):
         dist = self.get_distance(angle, 41)     # distance to shore at angle averaged over 41 points
 
         if (rospy.get_rostime() - self.start_time).to_sec() > self.run_time:
-            ''' Max time reached, return home '''
+            # Max time reached, return home
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
         elif dist < rospy.get_param('/transect/dist_threshold', 15.0):
-            ''' Distance to shore to small, either go back home, change direction or go upstream '''
+            # Distance to shore to small, either go back home, change direction or go upstream
             self.direction = not self.direction
             self.last_turn = rospy.get_rostime()
             self.transect_cnt += 1
             if self.transect_cnt >= self.max_transect:
-                ''' Max nbr of transects reached, return home '''
+                # Max nbr of transects reached, return home
                 return Home(self.ranges, self.controller.state_asv, self.controller.current)
             if (self.direction):
                 self.target_index = 0
             else:
                 self.target_index = 1
             if self.upstream and self.transect_cnt > self.trans_per_upstr:
-                ''' Going upstream inbetween transects and max transects at this place reached '''
+                # Going upstream inbetween transects and max transects at this place reached
                 trans_cnt = [self.transect_cnt, self.start_time]
                 return Upstream(self.ranges, self.controller.state_asv, self.controller.current, self.direction, trans_cnt)
             else:
@@ -408,7 +406,7 @@ class Transect(State):
         #     ref = proj + self.transect_center = rospy.get_param('/transect/delta_ref', 2.5) * line #make sure line is normalized
         # return ref
 
-        '''This is reference when transect controller is used'''
+        #This is reference when transect controller is used
         if self.direction:
             ref = [self.p1.x, self.p1.y]
         else:
@@ -549,10 +547,10 @@ class Upstream(State):
         DIST_THRESHOLD = rospy.get_param('/dist_threshold', 1.0)
         run_time = rospy.get_param('/transect/run_time', 100.0)
         if (rospy.get_rostime() - self.trans_cnt[1]).to_sec() > run_time:
-            ''' if max time reached, return home'''
+            # if max time reached, return home
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
         if dist < DIST_THRESHOLD:
-            ''' if close to ref point, do transects again'''
+            # if close to ref point, do transects again
             return Transect(last_controller=self.controller, ranges=self.ranges,
                                 lidar_inc=self.lidar_inc, dir=self.direction, trans_cnt=self.trans_cnt)
         else:
@@ -604,11 +602,11 @@ class Home(State):
             go_home (bool): When True the home position is the reference point, default=False
         """
         if go_home:
-            ''' home position is the reference point'''
+            # home position is the reference point
             self.xref = self.home[0]
             self.yref = self.home[1]
         else:
-            ''' calculate reference point in a similar way as the upstream update_ref '''
+            # calculate reference point in a similar way as the upstream update_ref
             self.dist_calc.ranges = self.ranges
             self.dist_calc.controller.state_asv = self.controller.state_asv
             d_left = self.dist_calc.get_distance(self.controller.current[1] + math.pi/2, 21)
@@ -633,7 +631,7 @@ class Home(State):
         theta_home = self.controller.state_asv[2] - math.atan2(self.home[1] - self.controller.state_asv[1], \
                 self.home[0] - self.controller.state_asv[0])    # angle to home point
         if abs(theta_home) <= 2*math.pi/3:
-            ''' if angle to home is smaller than some specified angle, boat is assumed to be going downstream.'''
+            # if angle to home is smaller than some specified angle, boat is assumed to be going downstream.
             go_home = True
         else:
             go_home = False
@@ -731,7 +729,7 @@ class Explore(State):
         self.update_ref()
         self.dist_travelled += self.controller.vel_robotX * 0.2
         if (rospy.get_rostime() - self.start_time).to_sec() > rospy.get_param('/explore/max_time', 120.0) or rospy.get_param('go_home', False): #self.dist_travelled > rospy.get_param('/max_distance', 30.0):
-            ''' If max time reached or go_home rosparam set true'''
+            # If max time reached or go_home rosparam set true
             #problems with distance travelled, maybe use GPS instead of "integrating" like we've done
             return Home(self.ranges, self.controller.state_asv, self.controller.current)
         else:

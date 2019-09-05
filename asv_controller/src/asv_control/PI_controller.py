@@ -70,7 +70,7 @@ class PI_controller(Generic_Controller):
         # If true v_ref depends linearly on the distance to the waypoint, this is used when close to the point
         lin_v = False
 
-        '''transform velocities to robots coordinate system'''
+        # transform velocities to robots coordinate system
         rot = np.array([[np.cos(self.state_asv[2]), np.sin(self.state_asv[2])],
             [-np.sin(self.state_asv[2]), np.cos(self.state_asv[2])]])           #rotation matrix
         vel_unrot = np.array([[self.v_asv[0]],[self.v_asv[1]]])                 #velocity in global frame
@@ -79,14 +79,12 @@ class PI_controller(Generic_Controller):
 
 
         #fix so I parts are reset when /motor/sim is changed to False
-        if rospy.get_param('/I/reset', False) or rospy.get_param('/motor/sim', False):
+        if rospy.get_param('/I/reset', False) or rospy.get_param('/motor_control/sim', False):
             rospy.set_param('/I/reset', False) # change it back to true (stop resetting)
             self.I_rudder = 0.0
             self.I_thrust = 0.0
 
-        print('I-parts', self.I_rudder, self.I_thrust)
-
-        '''evaluate rotation of robot compared to current'''
+        # evaluate rotation of robot compared to current
         e_heading = self.angleDiff(self.current[1] - self.state_asv[2])     #difference between current and heading of the boat
         rospy.logdebug(e_heading)
         ang_dir = self.state_asv[2]
@@ -94,13 +92,13 @@ class PI_controller(Generic_Controller):
         v = math.sqrt(self.v_asv[0]**2 + self.v_asv[1]**2)
 
         if abs(e_heading) > math.pi/3 and self.current[0] > 0.2:
-            '''turn robot back towards current if it points to much downward'''
+            # turn robot back towards current if it points to much downward
             rospy.logdebug('aligning to current')
             e_ang = e_heading
             self.debug_messages.action = "aligning to current"
 
         elif self.d2t() < self.dist_threshold/3:
-            '''holding position'''
+            # holding position
             e_ang = e_heading
             v_ref = 0.0
             self.debug_messages.action = 'holding'
@@ -112,7 +110,7 @@ class PI_controller(Generic_Controller):
             des_angle = math.atan2(self.state_ref[1] - self.state_asv[1],
                     self.state_ref[0] - self.state_asv[0])          #angle to waypoint
 
-            '''decide which feedback to use for angle'''
+            # decide which feedback to use for angle
             if v < self.VEL_THRESHOLD or vel_robot[0,0] < 0.0:
                 '''if moving slowly or backwards, use heading as feedback'''
                 ang_dir = self.state_asv[2]
@@ -120,25 +118,25 @@ class PI_controller(Generic_Controller):
                 #               Would need testing, but could give better results
 
             else:
-                '''else use heading from GPS'''
+                # else use heading from GPS
                 ang_dir = self.v_asv[2]
 
             if self.d2t() < rospy.get_param('/d2t', 2*self.dist_threshold):
-                '''if distance to waypoints is smaller v_ref is scaled linearly
-                    with the distance to the waypoint, the maximum difference between
-                    current and heading is scaled with the same factor.
-                    To reduce oscillations around this point'''
+                # if distance to waypoints is smaller v_ref is scaled linearly
+                # with the distance to the waypoint, the maximum difference between
+                # current and heading is scaled with the same factor.
+                # To reduce oscillations around this point
                 lin_factor = (self.d2t() - self.dist_threshold)/rospy.get_param('/d2t', 1.5)
                 v_ref = lin_factor * v_ref
                 lin_v = True
 
             if abs(self.angleDiff(des_angle - self.current[1])) > math.pi/2 \
                                 and self.current[0] > 0.2:
-                '''if goal point is downstream go towards it by floating with current.
-                    This is done by mirroring the waypoint in a line perpendicular to
-                    the current, through the boat. This point is used as the desired angle.
-                    The reference velocity is chosen quite arbitrarily right now.
-                    Better ways of calculating it is described below, but these needs to be tested'''
+                # if goal point is downstream go towards it by floating with current.
+                # This is done by mirroring the waypoint in a line perpendicular to
+                # the current, through the boat. This point is used as the desired angle.
+                # The reference velocity is chosen quite arbitrarily right now.
+                # Better ways of calculating it is described below, but these needs to be tested
 
                 des_angle_downstream = des_angle
                 des_angle = self.angleDiff(2*self.current[1] - math.pi - des_angle)
@@ -157,8 +155,8 @@ class PI_controller(Generic_Controller):
                 self.debug_messages.action = 'going downstream'
 
             if lin_v:
-                '''if we're close to the waypoint we limit the difference between the desired angle
-                    and the current angle based on the distance to the point'''
+                # if we're close to the waypoint we limit the difference between the desired angle
+                # and the current angle based on the distance to the point
                 des_angle = np.clip(des_angle, self.current[1] - lin_factor*math.pi/2,
                                         self.current[1] + lin_factor*math.pi/2)
 
@@ -198,7 +196,7 @@ class PI_controller(Generic_Controller):
         ### Control parameters ###
         MAX_THRUST = 1000
         MIN_THRUST = -1000
-        '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
+        # controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)
 
         # controller gains
         self.K_t = rospy.get_param('thrust/K', 400.0)
@@ -235,7 +233,7 @@ class PI_controller(Generic_Controller):
         MAX_RUDDER = 1833
         MIN_RUDDER = 1196
 
-        '''controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)'''
+        # controller on the form U(s) = K(1 + 1/(Ti*s))*E(s)
 
         # controller gains
         self.K_r = rospy.get_param('rudder/K', 150.0)
