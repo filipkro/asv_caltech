@@ -7,6 +7,28 @@ import time
 from Generic_Controller import Generic_Controller
 from asv_controller.msg import PI_states
 
+"""PI Controller
+This module contains implementation for the PI controller.
+It tracks waypoints by controlling the rudder and the thrusters with two
+different PI controllers. The rudder is controlled to turn the boat towards the
+point and the thrusters are controlled to keep the desired velocity.
+
+Run it from the Master controller.
+
+Rosparams:
+    /v_ref - reference speed
+    /v_threshold - threshold to chose feedback for heading
+    /thrust/K - gain in thrust controller
+    /thrust/Ti - integral part of thrust controller
+    /rudder/K - gain in rudder controller
+    /rudder/Ti - integral part of rudder controller
+    /dist_threshold - within this distance the point is considered to be reached
+    /I/reset - resets the I parts in the controllers if true
+    /motor_control/sim - no commands sent to the actuators when true
+    /d2t - within this distance to the reference point the velocity is scaled linearly
+
+"""
+
 # inherited from the Generic Controller class
 # members:
     # state_asv, state_ref, current, v_asv, wayPoints, target_index,
@@ -126,7 +148,7 @@ class PI_controller(Generic_Controller):
                 # with the distance to the waypoint, the maximum difference between
                 # current and heading is scaled with the same factor.
                 # To reduce oscillations around this point
-                lin_factor = (self.d2t() - self.dist_threshold)/rospy.get_param('/d2t', 1.5)
+                lin_factor = (self.d2t() - self.dist_threshold)/rospy.get_param('/d2t', 2*self.dist_threshold)
                 v_ref = lin_factor * v_ref
                 lin_v = True
 

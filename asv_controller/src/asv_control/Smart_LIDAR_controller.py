@@ -16,6 +16,38 @@ from std_msgs.msg import Float32MultiArray, String
 from geometry_msgs.msg import Point, PointStamped
 import random
 
+"""Smart LiDAR controller
+This module contains implementation for the Smart LiDAR program.
+It uses the PI and/or the transect controllers to either go upstream or do
+transects. LiDAR readings are used to keep track of shorelines. ADCP data is
+used to keep track of current direction.
+
+Run it from the Master controller.
+
+Rosparams:
+    /smart/idle - keeps current position while true
+    /restart - restarts the program if true
+    /start/x - start x position
+    /start/y - start y position
+    /dist_threshold - within this distance the point is considered to be reached
+    /smart/mode - chose between Upstream and Transect
+    /hold/wait_time - hold time
+    /transect/run_time - total time to run transects before returning home
+    /transect/max_transect - max number of transects before returning home
+    /transect/dist_threshold - distance to shore for transects
+    /upstream/cnt_per - number of full transects before going upstream
+    /upstream - go upstream between transects if true
+    /lidar_offset - offset between lidar and boat in radians
+    /waypoint/fraction - fraction of river when going upstream, 2 is in the middle
+    /dist_upstream - distance to point upstream, ie distance between transects
+    /home/x - home x position
+    /home/y - home y position
+    /dist_downstream - distance to reference point when going downstream (keep short)
+    /explore/max_time - time to go upstream before returning home
+    /go_home - returns home if true
+
+"""
+
 
 ########## Smart LiDAR controller state machine #######
 class Smart_LiDAR_Controller(Generic_Controller):
@@ -64,17 +96,17 @@ class Smart_LiDAR_Controller(Generic_Controller):
         # Important some controllers might use their own info, such as Transect
         self.state_pub.publish(self.state.__str__())
         if (rospy.get_param('smart/idle', False) or self.destReached) and self.state.__str__() != "Idle":
-            ''' Sets the boat in the Idle state which keeps position,
-                remembers the last state to be able to continue the run '''
+            # Sets the boat in the Idle state which keeps position,
+                remembers the last state to be able to continue the run
             self.goback_state = self.state
             self.state = Idle(self.state.controller.state_asv)
             self.goback_bool = True
         elif (not (rospy.get_param('smart/idle', False) or self.destReached)) and self.goback_bool:
-            ''' Continue run after being in the Idle state '''
+            # Continue run after being in the Idle state
             self.state = self.goback_state
             self.goback_bool = False
     	if rospy.get_param('restart', False):
-            ''' Restart the run '''
+            # Restart the run
     	    self.state = Start()
     	    rospy.set_param('restart', False)
 
@@ -461,7 +493,7 @@ class Transect(State):
         inc = self.lidar_inc
         wayPoints = self.wayPoints # self.controller.wayPoints is overwritten every loop!
 
-        self.dist_th = rospy.get_param('/transect/dist_threshold', 25.0)
+        self.dist_th = rospy.get_param('/transect/dist_threshold', 15.0)
         dist_th = self.dist_th
 
         theta_p = self.controller.angleDiff(math.atan2(wayPoints[0].y \

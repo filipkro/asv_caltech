@@ -124,7 +124,7 @@ def ADCP_callb2(msg):
 
         current[0] = math.sqrt(v_surface[0]**2 + v_surface[1]**2)
         current[1] = ADCP_mean[2]
-    
+
     # publish adcp data back to gui
     adcp_msg.data.append(current[0])
     adcp_msg.data.append(current[1])
@@ -296,9 +296,6 @@ def main():
         controller = switchControl()
         rospy.logdebug('Target Index '+ str(target_index))
         trgt_updated = updateTarget()
-#        print(rospy.get_param('/nav_mode'))
-#        print('current angle', current[1])
-#        print('heading', state_asv[2])
         if run and trgt_updated:
             controller.destinationReached(not trgt_updated)
             controller.update_variable(state_asv, state_ref, v_asv, target_index, wayPoints, current)#, ADCP_mean)
@@ -364,7 +361,6 @@ def main():
             motor_cmd.servo = u_rudder
 
         rospy.logdebug('MotorCmd ' + str(motor_cmd))
-#        print('motorcmnd (in master):', motor_cmd)
         ctrl_pub.publish(motor_cmd)
 
         if rospy.get_param('/emergency_shutdown', False):
