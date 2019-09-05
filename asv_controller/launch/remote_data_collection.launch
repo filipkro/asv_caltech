@@ -3,7 +3,7 @@
     Sensors used in this test: IMU, ADCP, GPS
     Packages ran: Motor control, Master Controller, LIDAR Reader -->
     <arg name="sd_card_name" default="51E77A0927E4AE03"/>
-    <arg name="run_lidar" default='true'/>
+    <arg name="run_lidar" default='false'/>
 
     <!-- Remapping -->
     <remap from="imu" to="sensors/imu"/>
@@ -13,17 +13,6 @@
 
     <!-- Load the parameters stored in field_test_parm file -->
     <rosparam file="$(find asv_controller)/src/field_test_param.yaml" command="load"/>
-
-    <!-- Master Controller -->
-    <node pkg="asv_controller" name="master_controller" type="master_control_node.py" output="screen">
-      <rosparam file="$(find asv_controller)/src/field_test_param.yaml" command="load"/>
-    </node>
-
-    <!-- Motor command distributor -->
-    <node pkg="motor_control" name="motor_control" type="motor_control_node.py" output="screen">
-        <param name="sim" value="True"/>
-        <param name='compass_offset' value='109.0'/>
-    </node>
 
     <!-- Arduino + Servo + IMU -->
     <node pkg="rosserial_python" name="ros_arduino" type="serial_node.py">
@@ -51,9 +40,6 @@
         <remap from="imu/data" to="os1/imu"/>
     </node>
 
-    <!-- Rosbridge for Remote Control -->
-    <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
-
     <!-- LIDAR -->
     <group if="$(eval arg('run_lidar') == true)">
         <include file="$(find ouster_ros)/os1.launch"/>
@@ -66,10 +52,9 @@
 	name="record_odometry"
 	type="record"
 	args="/GPS/xy_coord 
-          /motor_controller/motor_cmd_reciever 
-          /ref/point 
-          /heading /move_base_simple/goal /transect /smart/state 
-          /ref/point /smart/calcs /adcp/data /sensors/imu /GPS/fix /os1_cloud_node/points /os1_cloud_node/imu 
+          /adcp/raw
+          /adcp/data /sensors/imu /GPS/fix /os1_cloud_node/points /os1_cloud_node/imu 
+          /os1/imu 
           -o /media/nvidia/$(arg sd_card_name)/Data"
     />
 
