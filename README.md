@@ -1,4 +1,4 @@
-# Autonomous boat used for river mapping developed at Caltech summer of 2019
+# Autonomous boat used for river mapping at Caltech
 
 #Running the Boat in remote control mode
 ##Powering the boat
