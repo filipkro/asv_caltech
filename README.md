@@ -1,3 +1,5 @@
+# Autonomous boat used for river mapping developed at Caltech summer of 2019
+
 #Running the Boat in remote control mode
 ##Powering the boat
 Make sure the boat is properly powered before attempting to turn it on. The boat
