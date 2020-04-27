@@ -1,4 +1,5 @@
 # Autonomous boat used for river mapping at Caltech
+The results are presented in SURF_report.pdf
 
 #Running the Boat in remote control mode
 ##Powering the boat
